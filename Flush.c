@@ -1,5 +1,4 @@
 #include "LKL.h"
-#include <lk/kernel/thread.h>
 
 EFI_STATUS
 EFIAPI

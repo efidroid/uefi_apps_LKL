@@ -1,14 +1,6 @@
-#include <stdlib.h>
-#include <assert.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <time.h>
-#include <stdint.h>
-#include <sys/types.h>
-#include <stdio.h>
 #include <lkl_host.h>
 #include <iomem.h>
+#include <unistd.h>
 
 #include <lk/kernel/semaphore.h>
 #include <lk/kernel/mutex.h>
@@ -31,28 +23,11 @@ struct lkl_sem {
 	semaphore_t sem;
 };
 
-#define WARN_UNLESS(exp) do {						\
-		if (exp < 0)						\
-			lkl_printf("%s: %s\n", #exp, strerror(errno));	\
-	} while (0)
-
-static int _warn_lkthread(status_t ret, char *str_exp)
-{
-	if (ret > 0)
-		lkl_printf("%s: %s\n", str_exp, strerror(ret));
-
-	return ret;
-}
-
-
-/* pthread_* functions use the reverse convention */
-#define WARN_LKTHREAD(exp) _warn_lkthread(exp, #exp)
-
 static struct lkl_sem *sem_alloc(int count)
 {
 	struct lkl_sem *sem;
 
-	sem = malloc(sizeof(*sem));
+	sem = AllocatePool(sizeof(*sem));
 	if (!sem)
 		return NULL;
 
@@ -64,7 +39,7 @@ static struct lkl_sem *sem_alloc(int count)
 static void sem_free(struct lkl_sem *sem)
 {
 	sem_destroy(&sem->sem);
-	free(sem);
+	FreePool(sem);
 }
 
 static void sem_up(struct lkl_sem *sem)
@@ -73,7 +48,7 @@ static void sem_up(struct lkl_sem *sem)
     OldTpl = gBS->RaiseTPL (TPL_HIGH_LEVEL);
     gBS->RestoreTPL (OldTpl);
 
-	WARN_UNLESS(sem_post(&sem->sem, 1));
+	sem_post(&sem->sem, 1);
 }
 
 static void sem_down(struct lkl_sem *sem)
@@ -86,14 +61,12 @@ static void sem_down(struct lkl_sem *sem)
 	do {
         thread_yield();
 		err = sem_wait(&sem->sem);
-	} while (err < 0 && errno == EINTR);
-	if (err < 0 && errno != EINTR)
-		lkl_printf("sem_wait: %s\n", strerror(errno));
+	} while (err < 0);
 }
 
 static struct lkl_mutex *mutex_alloc(void)
 {
-	struct lkl_mutex *_mutex = malloc(sizeof(struct lkl_mutex));
+	struct lkl_mutex *_mutex = AllocatePool(sizeof(struct lkl_mutex));
 	mutex_t *mutex = NULL;
 
 	if (!_mutex)
@@ -108,20 +81,20 @@ static struct lkl_mutex *mutex_alloc(void)
 
 static void mutex_lock(struct lkl_mutex *mutex)
 {
-	WARN_LKTHREAD(mutex_acquire(&mutex->mutex));
+	mutex_acquire(&mutex->mutex);
 }
 
 static void mutex_unlock(struct lkl_mutex *_mutex)
 {
 	mutex_t *mutex = &_mutex->mutex;
-	WARN_LKTHREAD(mutex_release(mutex));
+	mutex_release(mutex);
 }
 
 static void mutex_free(struct lkl_mutex *_mutex)
 {
 	mutex_t *mutex = &_mutex->mutex;
 	mutex_destroy(mutex);
-	free(_mutex);
+	FreePool(_mutex);
 }
 
 #define MS2100N(x) ((x)*(1000000/100))
@@ -192,7 +165,7 @@ static void lkl_thread_exit(void)
 
 static int lkl_thread_join(lkl_thread_t tid)
 {
-	if (WARN_LKTHREAD(thread_join((thread_t*)tid, NULL, INFINITE_TIME)))
+	if (thread_join((thread_t*)tid, NULL, INFINITE_TIME))
 		return -1;
 	else
 		return 0;
@@ -224,8 +197,8 @@ static void *timer_alloc(void (*fn)(void *), void *arg)
 {
     EFI_STATUS Status;
 
-    ltimer_t* timer = malloc(sizeof(ltimer_t));
-    assert(timer);
+    ltimer_t* timer = AllocatePool(sizeof(ltimer_t));
+    ASSERT(timer);
     timer->fn = fn;
     timer->arg = arg;
 
@@ -256,7 +229,7 @@ static void timer_free(void *_timer)
 
 static void lkl_panic(void)
 {
-	assert(0);
+	ASSERT(0);
 }
 
 static long _gettid(void)
@@ -265,7 +238,7 @@ static long _gettid(void)
 }
 
 static void *lkl_mem_alloc(unsigned long size) {
-    return malloc(size);
+    return AllocatePool(size);
 }
 
 struct lkl_host_operations lkl_host_ops = {
@@ -288,7 +261,7 @@ struct lkl_host_operations lkl_host_ops = {
 	.timer_free = timer_free,
 	.print = print,
 	.mem_alloc = lkl_mem_alloc,
-	.mem_free = free,
+	.mem_free = FreePool,
 	.ioremap = lkl_ioremap,
 	.iomem_access = lkl_iomem_access,
 	.virtio_devices = lkl_virtio_devs,
@@ -305,7 +278,7 @@ static int uefi_blk_get_capacity(struct lkl_disk disk, unsigned long long *res)
 
 static int do_rw(LKL_VOLUME *Volume, EFI_DISK_READ fn, struct lkl_disk disk, struct lkl_blk_req *req)
 {
-	off_t off = req->sector * 512;
+	INT64 off = req->sector * 512;
 	void *addr;
 	int len;
 	int i;

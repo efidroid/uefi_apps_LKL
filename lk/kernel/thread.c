@@ -45,7 +45,6 @@
 #if WITH_KERNEL_VM
 #include <lk/kernel/vm.h>
 #endif
-//#include <lk/compat/strlcpy.h>
 
 #if THREAD_STATS
 struct thread_stats thread_stats[SMP_MAX_CPUS];

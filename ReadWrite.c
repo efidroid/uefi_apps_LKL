@@ -22,7 +22,7 @@ LKLGetPosition (
   //
   LKLAcquireLock ();
 
-  RC = lkl_sys_llseek(IFile->FD, 0, 0, &NewPosition, SEEK_CUR);
+  RC = lkl_sys_llseek(IFile->FD, 0, 0, &NewPosition, LKL_SEEK_CUR);
 
   if (RC) {
     Status = EFI_DEVICE_ERROR;
@@ -79,10 +79,10 @@ LKLSetPosition (
   }
 
   if (Position==0xffffffffffffffff) {
-    RC = lkl_sys_llseek(IFile->FD, 0, 0, &NewPosition, SEEK_END);
+    RC = lkl_sys_llseek(IFile->FD, 0, 0, &NewPosition, LKL_SEEK_END);
   }
   else {
-    RC = lkl_sys_llseek(IFile->FD, (Position>>32)&0xffffffff, Position&0xffffffff, &NewPosition, SEEK_SET);
+    RC = lkl_sys_llseek(IFile->FD, (Position>>32)&0xffffffff, Position&0xffffffff, &NewPosition, LKL_SEEK_SET);
   }
 
   if (RC) {

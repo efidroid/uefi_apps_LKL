@@ -23,12 +23,6 @@ Revision History
 --*/
 
 #include "LKL.h"
-#include <errno.h>
-#include <stdlib.h>
-#include <sys/syslimits.h>
-#include <string.h>
-#include <stddef.h>
-#include <assert.h>
 
 #define __alloca(size) __builtin_alloca (size)
 
@@ -166,7 +160,7 @@ mempcpy (
   UINTN n
   )
 {
-  return (CHAR8 *)memcpy(dest, src, n) + n;
+  return (CHAR8 *)CopyMem(dest, src, n) + n;
 }
 
 CHAR8 *
@@ -186,18 +180,16 @@ RealPath (
     either parameter is a null pointer.  We extend this to allow
      the RESOLVED parameter to be NULL in case the we are expected to
      allocate the room for the return value.  */
-    errno = EINVAL;
     return NULL;
   }
 
   if (name[0] == '\0') {
     /* As per Single Unix Specification V2 we must return an error if
     the name argument points to an empty string.  */
-    errno = ENOENT;
     return NULL;
   }
 
-  path_max = PATH_MAX;
+  path_max = 4096;
 
   if (resolved == NULL) {
     AllocSize = path_max;
@@ -246,7 +238,6 @@ RealPath (
         CHAR8 *new_rpath;
 
         if (resolved) {
-          errno = ENAMETOOLONG;
           if (dest > rpath + 1)
             dest--;
           *dest = '\0';
@@ -278,7 +269,6 @@ RealPath (
         UINTN len;
 
         if (++num_links > 40) {
-          errno = ELOOP;
           goto error;
         }
 
@@ -292,7 +282,6 @@ RealPath (
 
         len = AsciiStrLen (end);
         if ((INTN) (n + len) >= path_max) {
-          errno = ENAMETOOLONG;
           goto error;
         }
 
@@ -307,7 +296,6 @@ RealPath (
           if (dest > rpath + 1)
             while ((--dest)[-1] != '/');
       } else if (!LKL_S_ISDIR (st.st_mode) && *end != '\0') {
-        errno = ENOTDIR;
         goto error;
       }
     }

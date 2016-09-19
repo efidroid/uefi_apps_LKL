@@ -25,11 +25,6 @@
 #include <Protocol/Cpu.h>
 
 #include <lk/kernel/thread.h>
-#include <lk/kernel/mutex.h>
-#include <lk/kernel/semaphore.h>
-
-#include <Library/PeCoffGetEntryPointLib.h>
-#include <Guid/DebugImageInfoTable.h>
 
 #include "LKL.h"
 
