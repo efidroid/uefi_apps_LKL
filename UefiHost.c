@@ -109,9 +109,9 @@ TimerCallback (
   )
 {
     ticks += 10;
-
-    // as long as linux doesn't do any long-running tasks this is totally fine
-    thread_yield();
+    if(thread_timer_tick()==INT_RESCHEDULE) {
+        thread_preempt();
+    }
 }
 lk_time_t current_time(void)
 {
