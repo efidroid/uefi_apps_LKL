@@ -80,6 +80,7 @@ static thread_t _idle_thread;
 /* local routines */
 static void thread_resched(void);
 static void idle_thread_routine(void) __NO_RETURN;
+lk_bigtime_t current_time_hires(void);
 
 #if PLATFORM_HAS_DYNAMIC_TIMER
 /* preemption timer */
