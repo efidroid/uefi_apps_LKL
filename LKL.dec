@@ -1,0 +1,13 @@
+[Defines]
+  DEC_SPECIFICATION              = 0x00010005
+  PACKAGE_NAME                   = LKL
+  PACKAGE_GUID                   = 21db9c99-120a-4c7a-a0bb-7ec6b5f3b49b
+  PACKAGE_VERSION                = 0.1
+
+[Includes]
+  Include
+  EFIDroidLKL/include
+  EFIDroidLKLPriv/lib
+
+[Includes.ARM]
+  Arm/Include

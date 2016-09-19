@@ -1,0 +1,91 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = LKL
+  MODULE_UNI_FILE                = LKL.uni
+  FILE_GUID                      = 21db9c99-120a-4c7a-a0bb-7ec6b5f3b49b
+  MODULE_TYPE                    = UEFI_DRIVER
+  VERSION_STRING                 = 1.0
+
+  ENTRY_POINT                    = LKLEntryPoint
+  UNLOAD_IMAGE                   = LKLUnload
+
+[Sources]
+  ComponentName.c
+  Init.c
+  LKL.c
+  Misc.c
+  UnicodeCollation.c
+  OpenVolume.c
+  Open.c
+  Data.c
+  Flush.c
+  Info.c
+  ReadWrite.c
+
+  lk/kernel/mutex.c
+  lk/kernel/semaphore.c
+  lk/kernel/thread.c
+  lk/arch_thread.c
+  lk/debug.c
+  lk/heap.c
+
+  EFIDroidLKL/lib/lkl.prebuilt
+
+  UefiHost.c
+  EFIDroidLKLPriv/lib/fs.c
+  EFIDroidLKLPriv/lib/iomem.c
+  EFIDroidLKLPriv/lib/utils.c
+  EFIDroidLKLPriv/lib/virtio_blk.c
+  EFIDroidLKLPriv/lib/virtio.c
+
+[Sources.ARM]
+  Arm/getcontext.S
+  Arm/setcontext.S
+  Arm/swapcontext.S
+  Arm/makecontext.c
+
+[Packages]
+  StdLib/StdLib.dec
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  EFIDroidUEFIApps/LKL/LKL.dec
+
+[Packages.ARM]
+  ArmPkg/ArmPkg.dec
+
+[LibraryClasses]
+  LibC
+  StdCNoEntryLib
+  DebugLib
+  UefiDriverEntryPoint
+  UefiLib
+
+  PeCoffGetEntryPointLib
+
+[Guids]
+  gEfiFileInfoGuid                      ## SOMETIMES_CONSUMES   ## UNDEFINED
+  gEfiFileSystemInfoGuid                ## SOMETIMES_CONSUMES   ## UNDEFINED
+  gEfiFileSystemVolumeLabelInfoIdGuid   ## SOMETIMES_CONSUMES   ## UNDEFINED
+
+  gEfiDebugImageInfoTableGuid
+
+[Protocols]
+  gEfiDiskIoProtocolGuid                ## TO_START
+  gEfiDiskIo2ProtocolGuid               ## TO_START
+  gEfiBlockIoProtocolGuid               ## TO_START
+  gEfiSimpleFileSystemProtocolGuid      ## BY_START
+  gEfiUnicodeCollationProtocolGuid      ## TO_START
+  gEfiUnicodeCollation2ProtocolGuid     ## TO_START
+
+  gEfiCpuArchProtocolGuid
+
+  gEfiPartitionNameProtocolGuid
+
+[Pcd]
+  gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultLang           ## SOMETIMES_CONSUMES
+  gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultPlatformLang   ## SOMETIMES_CONSUMES
+[UserExtensions.TianoCore."ExtraFiles"]
+  LKLExtra.uni
+
+#[BuildOptions]
+#  GCC:*_*_*_CC_FLAGS      = -Wno-unused-function -Wno-implicit-function-declaration -DLK_DEBUGLEVEL=2
