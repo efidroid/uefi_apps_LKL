@@ -44,22 +44,22 @@ static void sem_free(struct lkl_sem *sem)
 
 static void sem_up(struct lkl_sem *sem)
 {
-    EFI_TPL OldTpl;
-    OldTpl = gBS->RaiseTPL (TPL_HIGH_LEVEL);
-    gBS->RestoreTPL (OldTpl);
+	EFI_TPL OldTpl;
+	OldTpl = gBS->RaiseTPL (TPL_HIGH_LEVEL);
+	gBS->RestoreTPL (OldTpl);
 
 	sem_post(&sem->sem, 1);
 }
 
 static void sem_down(struct lkl_sem *sem)
 {
-    EFI_TPL OldTpl;
-    OldTpl = gBS->RaiseTPL (TPL_HIGH_LEVEL);
-    gBS->RestoreTPL (OldTpl);
+	EFI_TPL OldTpl;
+	OldTpl = gBS->RaiseTPL (TPL_HIGH_LEVEL);
+	gBS->RestoreTPL (OldTpl);
 
 	int err;
 	do {
-        thread_yield();
+		thread_yield();
 		err = sem_wait(&sem->sem);
 	} while (err < 0);
 }
@@ -104,53 +104,53 @@ STATIC volatile lk_time_t ticks = 0;
 VOID
 EFIAPI
 TimerCallback (
-  IN  EFI_EVENT   Event,
-  IN  VOID        *Context
-  )
+    IN  EFI_EVENT   Event,
+    IN  VOID        *Context
+)
 {
-    ticks += 10;
-    if(thread_timer_tick()==INT_RESCHEDULE) {
-        thread_preempt();
-    }
+	ticks += 10;
+	if (thread_timer_tick()==INT_RESCHEDULE) {
+		thread_preempt();
+	}
 }
 lk_time_t current_time(void)
 {
-    return ticks;
+	return ticks;
 }
 
 lk_bigtime_t current_time_hires(void)
 {
-    lk_bigtime_t time;
+	lk_bigtime_t time;
 
-    time = (lk_bigtime_t)ticks * 1000;
-    return time;
+	time = (lk_bigtime_t)ticks * 1000;
+	return time;
 }
 
 void lkl_thread_init(void)
 {
-    EFI_STATUS Status;
+	EFI_STATUS Status;
 
-    thread_init_early();
-    thread_init();
-    thread_create_idle();
-    thread_set_priority(DEFAULT_PRIORITY);
+	thread_init_early();
+	thread_init();
+	thread_create_idle();
+	thread_set_priority(DEFAULT_PRIORITY);
 
-    Status = gBS->CreateEvent (EVT_TIMER | EVT_NOTIFY_SIGNAL, TPL_CALLBACK, TimerCallback, NULL, &mTimerEvent);
-    ASSERT_EFI_ERROR (Status);
+	Status = gBS->CreateEvent (EVT_TIMER | EVT_NOTIFY_SIGNAL, TPL_CALLBACK, TimerCallback, NULL, &mTimerEvent);
+	ASSERT_EFI_ERROR (Status);
 
-    Status = gBS->SetTimer (mTimerEvent, TimerPeriodic, MS2100N(10));
-    ASSERT_EFI_ERROR (Status);
+	Status = gBS->SetTimer (mTimerEvent, TimerPeriodic, MS2100N(10));
+	ASSERT_EFI_ERROR (Status);
 }
 
 static lkl_thread_t lkl_thread_create(void (*fn)(void *), void *arg)
 {
-	thread_t* thread = thread_create("lkl", (int (*)(void *))fn, arg, DEFAULT_PRIORITY, 2*1024*1024);
+	thread_t *thread = thread_create("lkl", (int (*)(void *))fn, arg, DEFAULT_PRIORITY, 2*1024*1024);
 	if (!thread)
 		return 0;
 	else {
-        thread_resume(thread);
+		thread_resume(thread);
 		return (lkl_thread_t) thread;
-    }
+	}
 }
 
 static void lkl_thread_detach(void)
@@ -165,7 +165,7 @@ static void lkl_thread_exit(void)
 
 static int lkl_thread_join(lkl_thread_t tid)
 {
-	if (thread_join((thread_t*)tid, NULL, INFINITE_TIME))
+	if (thread_join((thread_t *)tid, NULL, INFINITE_TIME))
 		return -1;
 	else
 		return 0;
@@ -177,54 +177,54 @@ static unsigned long long time_ns(void)
 }
 
 typedef struct {
-    EFI_EVENT event;
-    void (*fn)(void *);
-    void* arg;
+	EFI_EVENT event;
+	void (*fn)(void *);
+	void *arg;
 } ltimer_t;
 
 VOID
 EFIAPI
 LTimerCallback (
-  IN  EFI_EVENT   Event,
-  IN  VOID        *Context
-  )
+    IN  EFI_EVENT   Event,
+    IN  VOID        *Context
+)
 {
-  ltimer_t* timer = Context;
-  timer->fn(timer->arg);
+	ltimer_t *timer = Context;
+	timer->fn(timer->arg);
 }
 
 static void *timer_alloc(void (*fn)(void *), void *arg)
 {
-    EFI_STATUS Status;
+	EFI_STATUS Status;
 
-    ltimer_t* timer = AllocatePool(sizeof(ltimer_t));
-    ASSERT(timer);
-    timer->fn = fn;
-    timer->arg = arg;
+	ltimer_t *timer = AllocatePool(sizeof(ltimer_t));
+	ASSERT(timer);
+	timer->fn = fn;
+	timer->arg = arg;
 
-    Status = gBS->CreateEvent (EVT_TIMER | EVT_NOTIFY_SIGNAL, TPL_CALLBACK, LTimerCallback, timer, &timer->event);
-    ASSERT_EFI_ERROR (Status);
+	Status = gBS->CreateEvent (EVT_TIMER | EVT_NOTIFY_SIGNAL, TPL_CALLBACK, LTimerCallback, timer, &timer->event);
+	ASSERT_EFI_ERROR (Status);
 
-    return timer;
+	return timer;
 }
 
 static int timer_set_oneshot(void *_timer, unsigned long ns)
 {
-    EFI_STATUS Status;
-    ltimer_t* timer = _timer;
+	EFI_STATUS Status;
+	ltimer_t *timer = _timer;
 
-    Status = gBS->SetTimer (timer->event, TimerRelative, ns/100);
-    ASSERT_EFI_ERROR (Status);
-    return 0;
+	Status = gBS->SetTimer (timer->event, TimerRelative, ns/100);
+	ASSERT_EFI_ERROR (Status);
+	return 0;
 }
 
 static void timer_free(void *_timer)
 {
-    EFI_STATUS Status;
-    ltimer_t* timer = _timer;
+	EFI_STATUS Status;
+	ltimer_t *timer = _timer;
 
-    Status = gBS->CloseEvent (timer->event);
-    ASSERT_EFI_ERROR (Status);
+	Status = gBS->CloseEvent (timer->event);
+	ASSERT_EFI_ERROR (Status);
 }
 
 static void lkl_panic(void)
@@ -237,8 +237,9 @@ static long _gettid(void)
 	return (long)get_current_thread();
 }
 
-static void *lkl_mem_alloc(unsigned long size) {
-    return AllocatePool(size);
+static void *lkl_mem_alloc(unsigned long size)
+{
+	return AllocatePool(size);
 }
 
 struct lkl_host_operations lkl_host_ops = {
@@ -270,7 +271,7 @@ struct lkl_host_operations lkl_host_ops = {
 
 static int uefi_blk_get_capacity(struct lkl_disk disk, unsigned long long *res)
 {
-    LKL_VOLUME *Volume = disk.handle;
+	LKL_VOLUME *Volume = disk.handle;
 
 	*res = (unsigned long long)((Volume->BlockIo->Media->LastBlock+1) * Volume->BlockIo->Media->BlockSize);
 	return 0;
@@ -283,7 +284,7 @@ static int do_rw(LKL_VOLUME *Volume, EFI_DISK_READ fn, struct lkl_disk disk, str
 	int len;
 	int i;
 	int ret = 0;
-    EFI_STATUS Status;
+	EFI_STATUS Status;
 
 	for (i = 0; i < req->count; i++) {
 
@@ -306,22 +307,22 @@ out:
 
 static int uefi_blk_request(struct lkl_disk disk, struct lkl_blk_req *req)
 {
-    LKL_VOLUME *Volume = disk.handle;
+	LKL_VOLUME *Volume = disk.handle;
 	int err = 0;
 
 	switch (req->type) {
-	case LKL_DEV_BLK_TYPE_READ:
-		err = do_rw(Volume, Volume->DiskIo->ReadDisk, disk, req);
-		break;
-	case LKL_DEV_BLK_TYPE_WRITE:
-		err = do_rw(Volume, Volume->DiskIo->WriteDisk, disk, req);
-		break;
-	case LKL_DEV_BLK_TYPE_FLUSH:
-	case LKL_DEV_BLK_TYPE_FLUSH_OUT:
-        Volume->BlockIo->FlushBlocks(Volume->BlockIo);
-		break;
-	default:
-		return LKL_DEV_BLK_STATUS_UNSUP;
+		case LKL_DEV_BLK_TYPE_READ:
+			err = do_rw(Volume, Volume->DiskIo->ReadDisk, disk, req);
+			break;
+		case LKL_DEV_BLK_TYPE_WRITE:
+			err = do_rw(Volume, Volume->DiskIo->WriteDisk, disk, req);
+			break;
+		case LKL_DEV_BLK_TYPE_FLUSH:
+		case LKL_DEV_BLK_TYPE_FLUSH_OUT:
+			Volume->BlockIo->FlushBlocks(Volume->BlockIo);
+			break;
+		default:
+			return LKL_DEV_BLK_STATUS_UNSUP;
 	}
 
 	if (err < 0)
