@@ -86,6 +86,3 @@
   gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultPlatformLang   ## SOMETIMES_CONSUMES
 [UserExtensions.TianoCore."ExtraFiles"]
   LKLExtra.uni
-
-#[BuildOptions]
-#  GCC:*_*_*_CC_FLAGS      = -Wno-unused-function -Wno-implicit-function-declaration -DLK_DEBUGLEVEL=2
