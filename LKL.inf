@@ -1,3 +1,23 @@
+## @file
+#  Component description file for FAT module.
+#
+#  This UEFI driver detects LKL file systems in the disk.
+#  It also produces the Simple File System protocol for the consumer to
+#  perform file and directory operations on the disk.
+#  Copyright (c) 2007 - 2014, Intel Corporation. All rights reserved.<BR>
+#  Copyright (c) 2016, The EFIDroid Project. All rights reserved.<BR>
+#
+#  This program and the accompanying materials are licensed and made available
+#  under the terms and conditions of the BSD License which accompanies this
+#  distribution. The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#
+##
+
 [Defines]
   INF_VERSION                    = 0x00010005
   BASE_NAME                      = LKL
@@ -9,18 +29,29 @@
   ENTRY_POINT                    = LKLEntryPoint
   UNLOAD_IMAGE                   = LKLUnload
 
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = ARM
+#
+#  DRIVER_BINDING                =  gLKLDriverBinding
+#  COMPONENT_NAME                =  gLKLComponentName
+#  COMPONENT_NAME2               =  gLKLComponentName2
+#
+
 [Sources]
   ComponentName.c
-  Init.c
-  LKL.c
-  Misc.c
-  UnicodeCollation.c
+  LKL.h
+  ReadWrite.c
   OpenVolume.c
   Open.c
-  Data.c
-  Flush.c
+  Misc.c
+  Init.c
   Info.c
-  ReadWrite.c
+  Flush.c
+  LKL.c
+  Data.c
+  UnicodeCollation.c
 
   lk/kernel/mutex.c
   lk/kernel/semaphore.c
@@ -56,18 +87,15 @@
 [LibraryClasses]
   LibC
   StdCNoEntryLib
-  DebugLib
-  UefiDriverEntryPoint
+  UefiBootServicesTableLib
   UefiLib
-
-  PeCoffGetEntryPointLib
+  UefiDriverEntryPoint
+  DebugLib
 
 [Guids]
   gEfiFileInfoGuid                      ## SOMETIMES_CONSUMES   ## UNDEFINED
   gEfiFileSystemInfoGuid                ## SOMETIMES_CONSUMES   ## UNDEFINED
   gEfiFileSystemVolumeLabelInfoIdGuid   ## SOMETIMES_CONSUMES   ## UNDEFINED
-
-  gEfiDebugImageInfoTableGuid
 
 [Protocols]
   gEfiDiskIoProtocolGuid                ## TO_START
@@ -78,8 +106,6 @@
   gEfiUnicodeCollation2ProtocolGuid     ## TO_START
 
   gEfiCpuArchProtocolGuid
-
-  gEfiPartitionNameProtocolGuid
 
 [Pcd]
   gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultLang           ## SOMETIMES_CONSUMES

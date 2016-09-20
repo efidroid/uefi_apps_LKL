@@ -1,6 +1,7 @@
 /*++
 
 Copyright (c) 2005 - 2013, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2016, The EFIDroid Project. All rights reserved.<BR>
 This program and the accompanying materials are licensed and made available
 under the terms and conditions of the BSD License which accompanies this
 distribution. The full text of the license may be found at
@@ -50,10 +51,14 @@ Revision History
 #include <lkl.h>
 #include <lkl_host.h>
 
+//
+// The LKL signature
+//
 #define LKL_VOLUME_SIGNATURE         SIGNATURE_32 ('l', 'k', 'l', 'v')
 #define LKL_IFILE_SIGNATURE          SIGNATURE_32 ('l', 'k', 'l', 'i')
 
 #define VOLUME_FROM_VOL_INTERFACE(a) CR (a, LKL_VOLUME, VolumeInterface, LKL_VOLUME_SIGNATURE);
+
 #define IFILE_FROM_FHAND(a)          CR (a, LKL_IFILE, Handle, LKL_IFILE_SIGNATURE)
 
 #define ASSERT_VOLUME_LOCKED(a)      ASSERT_LOCKED (&LKLFsLock)
@@ -109,6 +114,10 @@ extern EFI_COMPONENT_NAME_PROTOCOL     gLKLComponentName;
 extern EFI_COMPONENT_NAME2_PROTOCOL    gLKLComponentName2;
 extern EFI_LOCK                        LKLFsLock;
 extern EFI_FILE_PROTOCOL               LKLFileInterface;
+
+//
+// Function Prototypes
+//
 
 void lkl_thread_init(void);
 

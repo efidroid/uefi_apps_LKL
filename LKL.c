@@ -1,35 +1,44 @@
-/** @file
-*
-*  Copyright (c) 2011-2015, ARM Limited. All rights reserved.
-*
-*  This program and the accompanying materials
-*  are licensed and made available under the terms and conditions of the BSD License
-*  which accompanies this distribution.  The full text of the license may be found at
-*  http://opensource.org/licenses/bsd-license.php
-*
-*  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
-*
-**/
+/*++
 
-#include <Library/UefiApplicationEntryPoint.h>
-#include <Library/BaseMemoryLib.h>
-#include <PiDxe.h>
-#include <Library/HobLib.h>
-#include <Library/MemoryAllocationLib.h>
-#include <Library/UefiBootServicesTableLib.h>
-#include <Library/UefiRuntimeServicesTableLib.h>
-#include <Library/UefiLib.h>
-#include <Library/DebugLib.h>
+Copyright (c) 2005 - 2014, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2016, The EFIDroid Project. All rights reserved.<BR>
+This program and the accompanying materials are licensed and made available
+under the terms and conditions of the BSD License which accompanies this
+distribution. The full text of the license may be found at
+http://opensource.org/licenses/bsd-license.php
 
-#include <Protocol/Cpu.h>
+THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
-#include <lk/kernel/thread.h>
+
+Module Name:
+
+  LKL.c
+
+Abstract:
+
+  LKL File System driver routines that support EFI driver model
+
+--*/
 
 #include "LKL.h"
+#include <lk/kernel/thread.h>
 
 EFI_CPU_ARCH_PROTOCOL  *gCpu = NULL;
 EFI_RESET_SYSTEM       gUefiResetSystem;
+
+EFI_STATUS
+EFIAPI
+LKLEntryPoint (
+  IN EFI_HANDLE         ImageHandle,
+  IN EFI_SYSTEM_TABLE   *SystemTable
+  );
+
+EFI_STATUS
+EFIAPI
+LKLUnload (
+  IN EFI_HANDLE         ImageHandle
+  );
 
 EFI_STATUS
 EFIAPI
