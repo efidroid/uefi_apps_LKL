@@ -459,7 +459,7 @@ LKLSetOrGetInfo (
 #endif
   }
 
-  if (EFI_ERROR(Status)) {
+  if (EFI_ERROR(Status) && Status!=EFI_BUFFER_TOO_SMALL) {
     DEBUG((EFI_D_ERROR, "%a: %a %g = %r\n", __func__, IsSet?"set":"get", Type, Status));
   }
 
