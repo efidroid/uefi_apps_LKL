@@ -54,7 +54,7 @@ LKLOpenVolume (
   if (!EFI_ERROR (Status)) {
     *File = &IFile->Handle;
   }
-  IFile->LinuxOpenMode = LKL_O_RDONLY;
+  IFile->LinuxOpenFlags = LKL_O_RDONLY;
 
 Done:
   if (EFI_ERROR(Status)) {

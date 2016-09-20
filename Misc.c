@@ -335,7 +335,6 @@ GetBasenamePtr (
 /**
   Converts Epoch seconds (elapsed since 1970 JANUARY 01, 00:00:00 UTC) to EFI_TIME
  **/
-STATIC
 VOID
 EpochToEfiTime (
   IN  UINTN     EpochSeconds,
@@ -390,6 +389,107 @@ EpochToEfiTime (
 
 }
 
+// Define EPOCH (1970-JANUARY-01) in the Julian Date representation
+#define EPOCH_JULIAN_DATE                               2440588
+
+// Seconds per unit
+#define SEC_PER_MIN                                     ((UINTN)    60)
+#define SEC_PER_HOUR                                    ((UINTN)  3600)
+#define SEC_PER_DAY                                     ((UINTN) 86400)
+
+#define SEC_PER_MONTH                                   ((UINTN)  2,592,000)
+#define SEC_PER_YEAR                                    ((UINTN) 31,536,000)
+
+/**
+  Converts EFI_TIME to Epoch seconds (elapsed since 1970 JANUARY 01, 00:00:00 UTC)
+ **/
+UINTN
+EfiTimeToEpoch (
+  IN  EFI_TIME  *Time
+  )
+{
+  UINTN a;
+  UINTN y;
+  UINTN m;
+  UINTN JulianDate;  // Absolute Julian Date representation of the supplied Time
+  UINTN EpochDays;   // Number of days elapsed since EPOCH_JULIAN_DAY
+  UINTN EpochSeconds;
+
+  a = (14 - Time->Month) / 12 ;
+  y = Time->Year + 4800 - a;
+  m = Time->Month + (12*a) - 3;
+
+  JulianDate = Time->Day + ((153*m + 2)/5) + (365*y) + (y/4) - (y/100) + (y/400) - 32045;
+
+  ASSERT (JulianDate >= EPOCH_JULIAN_DATE);
+  EpochDays = JulianDate - EPOCH_JULIAN_DATE;
+
+  EpochSeconds = (EpochDays * SEC_PER_DAY) + ((UINTN)Time->Hour * SEC_PER_HOUR) + (Time->Minute * SEC_PER_MIN) + Time->Second;
+
+  return EpochSeconds;
+}
+
+BOOLEAN
+IsLeapYear (
+  IN EFI_TIME   *Time
+  )
+{
+  if (Time->Year % 4 == 0) {
+    if (Time->Year % 100 == 0) {
+      if (Time->Year % 400 == 0) {
+        return TRUE;
+      } else {
+        return FALSE;
+      }
+    } else {
+      return TRUE;
+    }
+  } else {
+    return FALSE;
+  }
+}
+
+BOOLEAN
+DayValid (
+  IN  EFI_TIME  *Time
+  )
+{
+  STATIC CONST INTN DayOfMonth[12] = { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+
+  if (Time->Day < 1 ||
+      Time->Day > DayOfMonth[Time->Month - 1] ||
+      (Time->Month == 2 && (!IsLeapYear (Time) && Time->Day > 28))
+     ) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+BOOLEAN
+EfiTimeIsValid (
+  IN EFI_TIME         *Time
+  )
+{
+  // Check the input parameters are within the range specified by UEFI
+  if ((Time->Year   < 1900) ||
+       (Time->Year   > 9999) ||
+       (Time->Month  < 1   ) ||
+       (Time->Month  > 12  ) ||
+       (!DayValid (Time)    ) ||
+       (Time->Hour   > 23  ) ||
+       (Time->Minute > 59  ) ||
+       (Time->Second > 59  ) ||
+       (Time->Nanosecond > 999999999) ||
+       (!((Time->TimeZone == EFI_UNSPECIFIED_TIMEZONE) || ((Time->TimeZone >= -1440) && (Time->TimeZone <= 1440)))) ||
+       (Time->Daylight & (~(EFI_TIME_ADJUST_DAYLIGHT | EFI_TIME_IN_DAYLIGHT)))
+    ) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
 EFI_STATUS
 LKLFillFileInfo (
   IN INTN             FD,
@@ -406,9 +506,11 @@ LKLFillFileInfo (
 
   FileInfo->FileSize = StatBuf.st_size;
   FileInfo->PhysicalSize = StatBuf.st_blocks*512;
-  EpochToEfiTime(StatBuf.lkl_st_ctime, &FileInfo->CreateTime);
   EpochToEfiTime(StatBuf.lkl_st_atime, &FileInfo->LastAccessTime);
   EpochToEfiTime(StatBuf.lkl_st_mtime, &FileInfo->ModificationTime);
+
+  // since there's no creation-time, use the modificationtime
+  EpochToEfiTime(StatBuf.lkl_st_mtime, &FileInfo->CreateTime);
   FileInfo->Attribute = 0;
 
   if ((StatBuf.st_mode&LKL_S_IWUSR)==0)

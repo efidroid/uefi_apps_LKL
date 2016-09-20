@@ -251,10 +251,6 @@ LKLOpen (
 
   // open the file
   FD = lkl_sys_open(AbsFilePath, LinuxFlags, LinuxMode);
-  if (FD==-LKL_EISDIR) {
-    LinuxFlags = LKL_O_RDONLY;
-    FD = lkl_sys_open(AbsFilePath, LinuxFlags, LinuxMode);
-  }
   if(FD<0) {
     Status = EFI_NOT_FOUND;
     goto Done;
@@ -269,7 +265,7 @@ LKLOpen (
       CopySrc++;
 
     AsciiStrnCpyS(IFile->FilePath, sizeof(IFile->FilePath), CopySrc, sizeof(IFile->FilePath));
-    IFile->LinuxOpenMode = LinuxMode;
+    IFile->LinuxOpenFlags = LinuxFlags;
     *NewHandle = &IFile->Handle;
   }
 

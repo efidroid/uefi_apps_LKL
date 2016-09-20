@@ -95,7 +95,7 @@ typedef struct {
   LKL_VOLUME          *Volume;
 
   INTN                FD;
-  lkl_umode_t         LinuxOpenMode;
+  INTN                LinuxOpenFlags;
   struct lkl_stat64   StatBuf;
   CHAR8               FilePath[4096];
 
@@ -195,6 +195,22 @@ VOID
 PathToUefiAscii(
   CHAR8* fname
 );
+
+VOID
+EpochToEfiTime (
+  IN  UINTN     EpochSeconds,
+  OUT EFI_TIME  *Time
+  );
+
+UINTN
+EfiTimeToEpoch (
+  IN  EFI_TIME  *Time
+  );
+
+BOOLEAN
+EfiTimeIsValid (
+  IN EFI_TIME         *Time
+  );
 
 EFI_STATUS
 LKLFillFileInfo (

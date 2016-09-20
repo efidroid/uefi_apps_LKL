@@ -83,7 +83,7 @@ LKLGetFileInfo (
   // add additional info
   LKLFillFileInfo(IFile->FD, FileInfo);
 
-  if ((IFile->LinuxOpenMode&LKL_S_IWUSR)==0)
+  if ((IFile->LinuxOpenFlags&LKL_O_RDONLY)==0)
     FileInfo->Attribute |= EFI_FILE_READ_ONLY;
 
   if (LKL_S_ISDIR(IFile->StatBuf.st_mode))
@@ -205,7 +205,6 @@ LKLSetVolumeLabelInfo (
 }
 #endif
 
-#if 0
 EFI_STATUS
 LKLSetFileInfo (
   IN LKL_VOLUME       *Volume,
@@ -214,17 +213,20 @@ LKLSetFileInfo (
   IN VOID             *Buffer
   )
 {
-  EFI_STATUS    Status;
+  //EFI_STATUS    Status;
   EFI_FILE_INFO *NewInfo;
-  LKL_OFILE     *DotOFile;
-  LKL_OFILE     *Parent;
-  CHAR16        NewFileName[EFI_PATH_STRING_LENGTH];
+  //CHAR16        NewFileName[EFI_PATH_STRING_LENGTH];
   EFI_TIME      ZeroTime;
   UINT8         NewAttribute;
   BOOLEAN       ReadOnly;
+  BOOLEAN       IsDirectory;
+  struct lkl_stat64     StatBuf;
+  struct lkl_utimbuf    UTimeBuf;
+  INTN                  RC;
+  BOOLEAN               TimeChanged = FALSE;
 
   ZeroMem (&ZeroTime, sizeof (EFI_TIME));
-  Parent  = OFile->Parent;
+
   //
   // If this is the root directory, we can't make any updates
   //
@@ -239,30 +241,60 @@ LKLSetFileInfo (
     return EFI_BAD_BUFFER_SIZE;
   }
 
-  ReadOnly = (BOOLEAN)(IFile->ReadOnly || (DirEnt->Entry.Attributes & EFI_FILE_READ_ONLY));
+  // read old file info
+  RC = lkl_sys_fstat64(IFile->FD, &StatBuf);
+  if (RC) {
+    return EFI_UNSUPPORTED;
+  }
+  UTimeBuf.actime = StatBuf.lkl_st_atime;
+  UTimeBuf.modtime = StatBuf.lkl_st_mtime;
+  ReadOnly = (BOOLEAN)(IFile->LinuxOpenFlags&LKL_O_RDONLY);
+  IsDirectory = LKL_S_ISDIR(StatBuf.st_mode);
+
   //
   // if a zero time is specified, then the original time is preserved
   //
   if (CompareMem (&ZeroTime, &NewInfo->CreateTime, sizeof (EFI_TIME)) != 0) {
-    if (!LKLIsValidTime (&NewInfo->CreateTime)) {
+    if (!EfiTimeIsValid (&NewInfo->CreateTime)) {
       return EFI_INVALID_PARAMETER;
     }
 
     if (!ReadOnly) {
-      LKLEfiTimeToLKLTime (&NewInfo->CreateTime, &DirEnt->Entry.FileCreateTime);
+      UINT32 NewTime = EfiTimeToEpoch(&NewInfo->CreateTime);
+      if (UTimeBuf.modtime != NewTime) {
+        UTimeBuf.modtime = NewTime;
+        TimeChanged = TRUE;
+      }
     }
   }
 
   if (CompareMem (&ZeroTime, &NewInfo->ModificationTime, sizeof (EFI_TIME)) != 0) {
-    if (!LKLIsValidTime (&NewInfo->ModificationTime)) {
+    if (!EfiTimeIsValid (&NewInfo->ModificationTime)) {
       return EFI_INVALID_PARAMETER;
     }
 
     if (!ReadOnly) {
-      LKLEfiTimeToLKLTime (&NewInfo->ModificationTime, &DirEnt->Entry.FileModificationTime);
+      UINT32 NewTime = EfiTimeToEpoch(&NewInfo->ModificationTime);
+      if (UTimeBuf.modtime != NewTime) {
+        UTimeBuf.modtime = NewTime;
+        TimeChanged = TRUE;
+      }
+    }
+  }
+
+  // apply new time
+  if (!ReadOnly && TimeChanged) {
+    UINTN  FilePathSize = AsciiStrLen(Volume->LKLMountPoint) + 1 + AsciiStrLen(IFile->FilePath) + 1;
+    CHAR8* FilePath = AllocatePool(FilePathSize);
+    if (FilePath) {
+      AsciiSPrint(FilePath, FilePathSize, "%a/%a", Volume->LKLMountPoint, IFile->FilePath);
     }
 
-    OFile->PreserveLastModification = TRUE;
+    RC = lkl_sys_utime(FilePath, &UTimeBuf);
+    FreePool(FilePath);
+    if (RC) {
+      return EFI_DEVICE_ERROR;
+    }
   }
 
   if (NewInfo->Attribute & (~EFI_FILE_VALID_ATTR)) {
@@ -273,13 +305,28 @@ LKLSetFileInfo (
   //
   // Can not change the directory attribute bit
   //
-  if ((NewAttribute ^ DirEnt->Entry.Attributes) & EFI_FILE_DIRECTORY) {
+  if (((BOOLEAN)(NewAttribute&EFI_FILE_DIRECTORY)) != IsDirectory) {
     return EFI_ACCESS_DENIED;
   }
+
   //
-  // Set the current attributes even if the IFile->ReadOnly is TRUE
+  // make file writable even if the OpenFlags are ReadOnly
   //
-  DirEnt->Entry.Attributes = (UINT8) ((DirEnt->Entry.Attributes &~EFI_FILE_VALID_ATTR) | NewAttribute);
+  if (((BOOLEAN)(NewAttribute&EFI_FILE_READ_ONLY)) != ReadOnly) {
+    lkl_mode_t NewMode = StatBuf.st_mode;
+    if(NewAttribute&EFI_FILE_READ_ONLY)
+      NewMode &= ~(LKL_S_IWUSR);
+    else
+      NewMode |= LKL_S_IWUSR;
+
+    // make file writable
+    RC = lkl_sys_chmod(IFile->FilePath, NewMode);
+    if (RC) {
+      return EFI_DEVICE_ERROR;
+    }
+  }
+
+#if 0
   //
   // Open the filename and see if it refers to an existing file
   //
@@ -289,14 +336,6 @@ LKLSetFileInfo (
   }
 
   if (*NewFileName != 0) {
-    //
-    // File was not found.  We do not allow rename of the current directory if
-    // there are open files below the current directory
-    //
-    if (!IsListEmpty (&OFile->ChildHead) || Parent == OFile) {
-      return EFI_ACCESS_DENIED;
-    }
-
     if (ReadOnly) {
       return EFI_ACCESS_DENIED;
     }
@@ -321,66 +360,50 @@ LKLSetFileInfo (
     OFile->Parent = Parent;
     RemoveEntryList (&OFile->ChildLink);
     InsertHeadList (&Parent->ChildHead, &OFile->ChildLink);
-    //
-    // If this is a directory, synchronize its dot directory entry
-    //
-    if (OFile->ODir != NULL) {
-      //
-      // Syncronize its dot entry
-      //
-      LKLResetODirCursor (OFile);
-      ASSERT (OFile->Parent != NULL);
-      for (DotOFile = OFile; DotOFile != OFile->Parent->Parent; DotOFile = DotOFile->Parent) {
-        Status = LKLGetNextDirEnt (OFile, &DirEnt);
-        if (EFI_ERROR (Status) || DirEnt == NULL || !LKLIsDotDirEnt (DirEnt)) {
-          return EFI_VOLUME_CORRUPTED;
-        }
-
-        LKLCloneDirEnt (DirEnt, DotOFile->DirEnt);
-        Status = LKLStoreDirEnt (OFile, DirEnt);
-        if (EFI_ERROR (Status)) {
-          return Status;
-        }
-      }
-    }
-    //
-    // If the file is renamed, we should append the ARCHIVE attribute
-    //
-    OFile->Archive = TRUE;
   } else if (Parent != OFile) {
     //
     // filename is to a different filename that already exists
     //
     return EFI_ACCESS_DENIED;
   }
+#endif
+
   //
   // If the file size has changed, apply it
   //
-  if (NewInfo->FileSize != OFile->FileSize) {
-    if (OFile->ODir != NULL || ReadOnly) {
+  if (NewInfo->FileSize != StatBuf.st_size) {
+    if (IsDirectory || ReadOnly) {
       //
       // If this is a directory or the file is read only, we can't change the file size
       //
       return EFI_ACCESS_DENIED;
     }
 
-    if (NewInfo->FileSize > OFile->FileSize) {
-      Status = LKLExpandOFile (OFile, NewInfo->FileSize);
+    if (NewInfo->FileSize > StatBuf.st_size) {
+      UINT64 Position = NewInfo->FileSize - 1;
+      lkl_loff_t NewPosition;
+
+      // seek to new size - 1
+      RC = lkl_sys_llseek(IFile->FD, (Position>>32)&0xffffffff, Position&0xffffffff, &NewPosition, LKL_SEEK_SET);
+      if (RC) {
+        return EFI_DEVICE_ERROR;
+      }
+
+      CHAR8 ZeroByte = 0;
+      RC = lkl_sys_write(IFile->FD, &ZeroByte, 1);
+      if (RC) {
+        return EFI_DEVICE_ERROR;
+      }
     } else {
-      Status = LKLTruncateOFile (OFile, (UINTN) NewInfo->FileSize);
+      RC = lkl_sys_ftruncate(IFile->FD, NewInfo->FileSize);
+      if (RC) {
+        return EFI_DEVICE_ERROR;
+      }
     }
-
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-
-    LKLUpdateDirEntClusterSizeInfo (OFile);
   }
 
-  OFile->Dirty = TRUE;
-  return LKLOFileFlush (OFile);
+  return EFI_SUCCESS;
 }
-#endif
 
 EFI_STATUS
 LKLSetOrGetInfo (
@@ -405,11 +428,9 @@ LKLSetOrGetInfo (
   //
   Status = EFI_UNSUPPORTED;
   if (IsSet) {
-#if 0
     if (CompareGuid (Type, &gEfiFileInfoGuid)) {
       Status = Volume->ReadOnly ? EFI_WRITE_PROTECTED : LKLSetFileInfo (Volume, IFile, *BufferSize, Buffer);
     }
-#endif
 
 #if 0
     if (CompareGuid (Type, &gEfiFileSystemInfoGuid)) {
@@ -436,6 +457,10 @@ LKLSetOrGetInfo (
       Status = LKLGetVolumeLabelInfo (Volume, BufferSize, Buffer);
     }
 #endif
+  }
+
+  if (EFI_ERROR(Status)) {
+    DEBUG((EFI_D_ERROR, "%a: %a %g = %r\n", __func__, IsSet?"set":"get", Type, Status));
   }
 
   LKLReleaseLock ();
