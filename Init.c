@@ -22,6 +22,7 @@ Abstract:
 --*/
 
 #include "LKL.h"
+#include <stdio.h>
 
 EFI_STATUS
 LKLAllocateVolume (
@@ -34,6 +35,12 @@ LKLAllocateVolume (
   EFI_STATUS  Status;
   LKL_VOLUME  *Volume;
   INTN        Ret;
+  CONST CHAR8 *FsType;
+
+  Status = GetFsType (DiskIo, BlockIo->Media->MediaId, &FsType);
+  if (EFI_ERROR(Status)) {
+    return EFI_UNSUPPORTED;
+  }
 
   //
   // Allocate a volume structure
@@ -67,7 +74,7 @@ LKLAllocateVolume (
   Volume->LKLDiskId = Ret;
 
   // mount disk
-  Ret = lkl_mount_dev(Volume->LKLDiskId, "ext4", LKL_MS_SYNCHRONOUS|LKL_MS_DIRSYNC, NULL, Volume->LKLMountPoint, sizeof(Volume->LKLMountPoint));
+  Ret = lkl_mount_dev(Volume->LKLDiskId, FsType, LKL_MS_SYNCHRONOUS|LKL_MS_DIRSYNC, NULL, Volume->LKLMountPoint, sizeof(Volume->LKLMountPoint));
   if (Ret < 0) {
     DEBUG((EFI_D_ERROR, "can't mount disk: %a\n", lkl_strerror(Ret)));
     Status = EFI_UNSUPPORTED;

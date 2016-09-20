@@ -69,6 +69,11 @@
   EFIDroidLKLPriv/lib/virtio_blk.c
   EFIDroidLKLPriv/lib/virtio.c
 
+  filesystems/filesystems.c
+  filesystems/ext.c
+  filesystems/ntfs.c
+  filesystems/f2fs.c
+
 [Sources.ARM]
   Arm/getcontext.S
   Arm/setcontext.S

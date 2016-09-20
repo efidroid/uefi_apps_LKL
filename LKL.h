@@ -51,6 +51,8 @@ Revision History
 #include <lkl.h>
 #include <lkl_host.h>
 
+#include <FsId.h>
+
 //
 // The LKL signature
 //
