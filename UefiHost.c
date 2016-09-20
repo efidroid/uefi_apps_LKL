@@ -44,19 +44,11 @@ static void sem_free(struct lkl_sem *sem)
 
 static void sem_up(struct lkl_sem *sem)
 {
-	EFI_TPL OldTpl;
-	OldTpl = gBS->RaiseTPL (TPL_HIGH_LEVEL);
-	gBS->RestoreTPL (OldTpl);
-
 	sem_post(&sem->sem, 1);
 }
 
 static void sem_down(struct lkl_sem *sem)
 {
-	EFI_TPL OldTpl;
-	OldTpl = gBS->RaiseTPL (TPL_HIGH_LEVEL);
-	gBS->RestoreTPL (OldTpl);
-
 	int err;
 	do {
 		thread_yield();
