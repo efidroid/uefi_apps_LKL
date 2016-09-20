@@ -165,7 +165,7 @@ static int lkl_thread_join(lkl_thread_t tid)
 
 static unsigned long long time_ns(void)
 {
-	return current_time_hires();
+	return current_time()*1000000ULL;
 }
 
 typedef struct {
