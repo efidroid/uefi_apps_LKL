@@ -90,7 +90,7 @@ LKLSetPosition (
   if (LKL_S_ISDIR(IFile->StatBuf.st_mode)) {
     if (Position==0) {
       if (IFile->Dir) {
-        lkl_sys_lseek(IFile->FD, 0, LKL_SEEK_SET);
+        lkl_rewinddir(IFile->Dir);
       }
       IFile->DirEnt = NULL;
       Status = EFI_SUCCESS;
