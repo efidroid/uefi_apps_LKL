@@ -63,6 +63,7 @@ LKLAllocateVolume (
   Volume->VolumeInterface.Revision    = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_REVISION;
   Volume->LKLDisk.handle              = Volume;
   Volume->VolumeInterface.OpenVolume  = LKLOpenVolume;
+  Volume->FsType                      = FsType;
 
   // register disk
   Ret = lkl_disk_add(&Volume->LKLDisk);

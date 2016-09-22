@@ -113,7 +113,7 @@ LKLGetVolumeInfo (
   }
 
   Size              = SIZE_OF_EFI_FILE_SYSTEM_INFO;
-  NameSize          = 2;
+  NameSize          = AsciiStrSize(Volume->FsType) * sizeof(CHAR16);
   ResultSize        = Size + NameSize;
 
   Status = EFI_BUFFER_TOO_SMALL;
@@ -128,7 +128,8 @@ LKLGetVolumeInfo (
     Info->BlockSize   = StatBuf.f_bsize;
     Info->VolumeSize  = StatBuf.f_blocks * Info->BlockSize;
     Info->FreeSpace   = StatBuf.f_bfree  * Info->BlockSize;
-    SetMem (Buffer + Size, NameSize, '\0');
+
+    AsciiStrToUnicodeStr(Volume->FsType, Buffer + Size);
   }
 
   *BufferSize = ResultSize;

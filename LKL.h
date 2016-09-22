@@ -86,6 +86,7 @@ typedef struct _LKL_VOLUME {
   struct lkl_disk                 LKLDisk;
   INTN                            LKLDiskId;
   CHAR8                           LKLMountPoint[32];
+  CONST CHAR8                     *FsType;
 } LKL_VOLUME;
 
 typedef struct {
