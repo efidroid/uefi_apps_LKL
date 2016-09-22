@@ -380,26 +380,9 @@ LKLSetFileInfo (
       return EFI_ACCESS_DENIED;
     }
 
-    if (NewInfo->FileSize > StatBuf.st_size) {
-      UINT64 Position = NewInfo->FileSize - 1;
-      lkl_loff_t NewPosition;
-
-      // seek to new size - 1
-      RC = lkl_sys_llseek(IFile->FD, (Position>>32)&0xffffffff, Position&0xffffffff, &NewPosition, LKL_SEEK_SET);
-      if (RC) {
-        return EFI_DEVICE_ERROR;
-      }
-
-      CHAR8 ZeroByte = 0;
-      RC = lkl_sys_write(IFile->FD, &ZeroByte, 1);
-      if (RC) {
-        return EFI_DEVICE_ERROR;
-      }
-    } else {
-      RC = lkl_sys_ftruncate(IFile->FD, NewInfo->FileSize);
-      if (RC) {
-        return EFI_DEVICE_ERROR;
-      }
+    RC = lkl_sys_ftruncate(IFile->FD, NewInfo->FileSize);
+    if (RC) {
+      return EFI_DEVICE_ERROR;
     }
   }
 
