@@ -329,7 +329,8 @@ GetBasenamePtr (
   i = AsciiStrLen(s)-1;
 
   for (; i && s[i-1]!='/'; i--);
-    return s+i;
+
+  return s+i;
 }
 
 /**
