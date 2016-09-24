@@ -42,11 +42,6 @@ LKLGetPosition (
   Volume  = IFile->Volume;
   (VOID)(Volume);
 
-  //
-  // Lock the volume
-  //
-  LKLAcquireLock ();
-
   RC = lkl_sys_llseek(IFile->FD, 0, 0, &NewPosition, LKL_SEEK_CUR);
 
   if (RC) {
@@ -56,11 +51,6 @@ LKLGetPosition (
     *Position = NewPosition;
     Status = EFI_SUCCESS;
   }
-
-  //
-  // Done. Unlock the volume
-  //
-  LKLReleaseLock ();
 
   return Status;
 }
@@ -81,11 +71,6 @@ LKLSetPosition (
   IFile = IFILE_FROM_FHAND (FHand);
   Volume  = IFile->Volume;
   (VOID)(Volume);
-
-  //
-  // Lock the volume
-  //
-  LKLAcquireLock ();
 
   if (LKL_S_ISDIR(IFile->StatBuf.st_mode)) {
     if (Position==0) {
@@ -117,11 +102,6 @@ LKLSetPosition (
   }
 
 Done:
-
-  //
-  // Done. Unlock the volume
-  //
-  LKLReleaseLock ();
 
   return Status;
 }
@@ -234,8 +214,6 @@ LKLIFileAccess (
     }
   }
 
-  LKLAcquireLock ();
-
   if (LKL_S_ISDIR(IFile->StatBuf.st_mode)) {
     //
     // Read a directory is supported
@@ -266,7 +244,6 @@ LKLIFileAccess (
     }
   }
 
-  LKLReleaseLock ();
   return Status;
 }
 

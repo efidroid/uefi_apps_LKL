@@ -405,8 +405,6 @@ LKLSetOrGetInfo (
   IFile   = IFILE_FROM_FHAND (FHand);
   Volume  = IFile->Volume;
 
-  LKLAcquireLock ();
-
   //
   // Get the proper information based on the request
   //
@@ -447,7 +445,6 @@ LKLSetOrGetInfo (
     DEBUG((EFI_D_ERROR, "%a: %a %g = %r\n", __func__, IsSet?"set":"get", Type, Status));
   }
 
-  LKLReleaseLock ();
   return Status;
 }
 

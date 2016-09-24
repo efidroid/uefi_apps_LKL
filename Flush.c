@@ -40,11 +40,6 @@ LKLFlush (
   Volume  = IFile->Volume;
   (VOID)(Volume);
 
-  //
-  // Lock the volume
-  //
-  LKLAcquireLock ();
-
   RC = lkl_sys_fsync(IFile->FD);
   if (RC) {
     Status = EFI_DEVICE_ERROR;
@@ -52,11 +47,6 @@ LKLFlush (
   else {
     Status = EFI_SUCCESS;
   }
-
-  //
-  // Done. Unlock the volume
-  //
-  LKLReleaseLock ();
 
   return Status;
 }
@@ -86,19 +76,9 @@ LKLClose (
   (VOID)(Volume);
 
   //
-  // Lock the volume
-  //
-  LKLAcquireLock ();
-
-  //
   // Close the file instance handle
   //
   LKLIFileClose (IFile);
-
-  //
-  // Done. Unlock the volume
-  //
-  LKLReleaseLock ();
 
   return EFI_SUCCESS;
 }
@@ -119,11 +99,6 @@ LKLDelete (
   (VOID)(Volume);
 
   Status = EFI_WARN_DELETE_FAILURE;
-
-  //
-  // Lock the volume
-  //
-  LKLAcquireLock ();
 
   UINTN  FilePathSize = AsciiStrLen(Volume->LKLMountPoint) + 1 + AsciiStrLen(IFile->FilePath) + 1;
   CHAR8* FilePath = AllocatePool(FilePathSize);
@@ -147,11 +122,6 @@ LKLDelete (
 
     FreePool (FilePath);
   }
-
-  //
-  // Done. Unlock the volume
-  //
-  LKLReleaseLock ();
 
   return Status;
 }

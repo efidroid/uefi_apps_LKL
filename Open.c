@@ -36,8 +36,6 @@ LKLAllocateIFile (
   EFI_STATUS        Status;
   INTN              RC;
 
-  ASSERT_VOLUME_LOCKED (Volume);
-
   //
   // Allocate a new open instance
   //
@@ -159,7 +157,6 @@ LKLOpen (
       LinuxMode |= LKL_S_IRUSR|LKL_S_IWUSR; // u+rw
   }
 
-  LKLAcquireLock ();
   FD = -1;
 
   if (Volume->ReadOnly && WriteMode) {
@@ -282,8 +279,6 @@ Done:
   if (AbsFilePath!=NULL)
     FreePool (AbsFilePath);
 
-  LKLReleaseLock ();
-
   return Status;
 }
 
@@ -307,13 +302,6 @@ LKLIFileClose (
   LKL_IFILE           *IFile
   )
 {
-  LKL_VOLUME  *Volume;
-
-  Volume  = IFile->Volume;
-
-  ASSERT_VOLUME_LOCKED (Volume);
-  (VOID)(Volume);
-
   lkl_sys_close(IFile->FD);
   
   //

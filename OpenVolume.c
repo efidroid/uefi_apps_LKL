@@ -38,7 +38,6 @@ LKLOpenVolume (
   INTN        FD;
 
   Volume = VOLUME_FROM_VOL_INTERFACE (This);
-  LKLAcquireLock ();
   FD = -1;
 
   FD = lkl_sys_open(Volume->LKLMountPoint, LKL_O_RDONLY, 0644);
@@ -61,8 +60,6 @@ Done:
     if (FD>=0)
       lkl_sys_close(FD);
   }
-
-  LKLReleaseLock ();
 
   return Status;
 }
