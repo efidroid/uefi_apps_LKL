@@ -12,7 +12,9 @@ static void print(const char *str, int len)
 {
 	int ret __attribute__((unused));
 
+	DEBUG_CODE_BEGIN();
 	ret = write(STDOUT_FILENO, str, len);
+	DEBUG_CODE_END();
 }
 
 struct lkl_mutex {
