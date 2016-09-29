@@ -296,8 +296,6 @@ RealPath (
           /* Back up to previous component, ignore if at root already: */
           if (dest > rpath + 1)
             while ((--dest)[-1] != '/');
-      } else if (!LKL_S_ISDIR (st.st_mode) && *end != '\0') {
-        goto error;
       }
     }
   }
