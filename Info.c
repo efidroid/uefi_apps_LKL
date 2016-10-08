@@ -245,7 +245,7 @@ LKLSetFileInfo (
   // read old file info
   RC = lkl_sys_fstat64(IFile->FD, &StatBuf);
   if (RC) {
-    return EFI_UNSUPPORTED;
+    return LKLError2EfiError(RC);
   }
   UTimeBuf.actime = StatBuf.lkl_st_atime;
   UTimeBuf.modtime = StatBuf.lkl_st_mtime;
@@ -294,7 +294,7 @@ LKLSetFileInfo (
     RC = lkl_sys_utime(FilePath, &UTimeBuf);
     FreePool(FilePath);
     if (RC) {
-      return EFI_DEVICE_ERROR;
+      return LKLError2EfiError(RC);
     }
   }
 
@@ -323,7 +323,7 @@ LKLSetFileInfo (
     // make file writable
     RC = lkl_sys_chmod(IFile->FilePath, NewMode);
     if (RC) {
-      return EFI_DEVICE_ERROR;
+      return LKLError2EfiError(RC);
     }
   }
 
@@ -382,7 +382,7 @@ LKLSetFileInfo (
 
     RC = lkl_sys_ftruncate(IFile->FD, NewInfo->FileSize);
     if (RC) {
-      return EFI_DEVICE_ERROR;
+      return LKLError2EfiError(RC);
     }
   }
 

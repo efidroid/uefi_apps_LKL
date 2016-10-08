@@ -42,7 +42,7 @@ LKLOpenVolume (
 
   FD = lkl_sys_open(Volume->LKLMountPoint, LKL_O_RDONLY, 0644);
   if(FD<0) {
-    Status = EFI_VOLUME_CORRUPTED;
+    Status = LKLError2EfiError(FD);
     goto Done;
   }
 

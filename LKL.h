@@ -124,6 +124,11 @@ extern EFI_FILE_PROTOCOL               LKLFileInterface;
 
 void lkl_thread_init(void);
 
+EFI_STATUS
+LKLError2EfiError (
+  INTN Error
+);
+
 CHAR8 *
 RealPath (
   CONST CHAR8 *name,

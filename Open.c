@@ -46,7 +46,7 @@ LKLAllocateIFile (
 
   RC = lkl_sys_fstat64(FD, &IFile->StatBuf);
   if (RC) {
-    Status = EFI_DEVICE_ERROR;
+    Status = LKLError2EfiError(RC);
     goto Done;
   }
 
@@ -230,7 +230,7 @@ LKLOpen (
     if (Attributes & EFI_FILE_DIRECTORY) {
       RC = lkl_sys_mkdir(AbsFilePath, LinuxMode);
       if (RC) {
-        Status = EFI_ACCESS_DENIED;
+        Status = LKLError2EfiError(RC);
         goto Done;
       }
 
@@ -249,7 +249,7 @@ LKLOpen (
   // open the file
   FD = lkl_sys_open(AbsFilePath, LinuxFlags, LinuxMode);
   if(FD<0) {
-    Status = EFI_NOT_FOUND;
+    Status = LKLError2EfiError(FD);
     goto Done;
   }
 

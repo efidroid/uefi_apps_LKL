@@ -45,7 +45,7 @@ LKLGetPosition (
   RC = lkl_sys_llseek(IFile->FD, 0, 0, &NewPosition, LKL_SEEK_CUR);
 
   if (RC) {
-    Status = EFI_DEVICE_ERROR;
+    Status = LKLError2EfiError(RC);
   }
   else {
     *Position = NewPosition;
@@ -94,12 +94,7 @@ LKLSetPosition (
     RC = lkl_sys_llseek(IFile->FD, (Position>>32)&0xffffffff, Position&0xffffffff, &NewPosition, LKL_SEEK_SET);
   }
 
-  if (RC) {
-    Status = EFI_DEVICE_ERROR;
-  }
-  else {
-    Status = EFI_SUCCESS;
-  }
+  Status = LKLError2EfiError(RC);
 
 Done:
 
@@ -126,7 +121,7 @@ LKLIFileReadDir (
   if (IFile->Dir == NULL) {
     IFile->Dir = lkl_fdopendir(IFile->FD, &RC);
     if (IFile->Dir == NULL)
-      return EFI_DEVICE_ERROR;
+      return LKLError2EfiError(RC);
   }
 
   if (IFile->DirEnt == NULL) {
@@ -232,11 +227,8 @@ LKLIFileAccess (
       RC = lkl_sys_read(IFile->FD, Buffer, *BufferSize);
     }
 
-    if(RC==-LKL_EPERM) {
-      Status = EFI_ACCESS_DENIED;
-    }
-    else if(RC<0) {
-      Status = EFI_DEVICE_ERROR;
+    if(RC<0) {
+      Status = LKLError2EfiError(RC);
     }
     else {
       *BufferSize = RC;

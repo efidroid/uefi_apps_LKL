@@ -41,12 +41,7 @@ LKLFlush (
   (VOID)(Volume);
 
   RC = lkl_sys_fsync(IFile->FD);
-  if (RC) {
-    Status = EFI_DEVICE_ERROR;
-  }
-  else {
-    Status = EFI_SUCCESS;
-  }
+  Status = LKLError2EfiError(RC);
 
   return Status;
 }

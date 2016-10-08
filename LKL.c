@@ -97,7 +97,7 @@ LKLEntryPoint (
   ret = lkl_start_kernel(&lkl_host_ops, 64 * 1024 * 1024, "");
   if (ret) {
     DEBUG((EFI_D_ERROR, "can't start kernel: %s\n", lkl_strerror(ret)));
-    return EFI_LOAD_ERROR;
+    return LKLError2EfiError(ret);
   }
 
   //
