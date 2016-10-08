@@ -100,6 +100,20 @@ LKLEntryPoint (
     return LKLError2EfiError(ret);
   }
 
+  // setup /dev
+  Status = LKLMakeDir("/dev");
+  if (EFI_ERROR(Status)) {
+    return Status;
+  }
+  Status = LKLMakeDir("/dev/block");
+  if (EFI_ERROR(Status)) {
+    return Status;
+  }
+  ret = lkl_sys_mknod("/dev/device-mapper", LKL_S_IFCHR | 0600, makedev(10, 236));
+  if (ret) {
+    return LKLError2EfiError(ret);
+  }
+
   //
   // Initialize the EFI Driver Library
   //

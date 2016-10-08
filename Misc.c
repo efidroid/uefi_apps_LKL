@@ -545,6 +545,20 @@ StartsWith (
     return AsciiStrnCmp(pre, str, AsciiStrLen(pre)) == 0;
 }
 
+EFI_STATUS
+LKLMakeDir (
+ CONST CHAR8 *Path
+)
+{
+  INTN Ret;
+  Ret = lkl_sys_mkdir(Path, 0700);
+  if (Ret && Ret != -LKL_EEXIST) {
+    return LKLError2EfiError(Ret);
+  }
+
+  return EFI_SUCCESS;
+}
+
 static EFI_STATUS CONST LKLErrorStatus[] = {
   EFI_SUCCESS,
   EFI_ACCESS_DENIED, // LKL_EPERM
@@ -707,4 +721,103 @@ LKLError2EfiError (
     return MAX_UINTN;
 
   return LKLErrorStatus[Error];
+}
+
+VOID
+EFIAPI
+UnicodeToLower (
+  IN EFI_STRING  UnicodeString
+  )
+{
+  EFI_STRING  String;
+
+  ASSERT (UnicodeString != NULL);
+
+  //
+  // Convert all hex digits in range [A-F] in the configuration header to [a-f]
+  //
+  for (String = UnicodeString; *String != L'\0'; String++) {
+    if (*String >= L'A' && *String <= L'F') {
+      *String = (CHAR16) (*String - L'A' + L'a');
+    }
+  }
+}
+
+EFI_STATUS
+GetFileFromAnyPartition (
+  IN  CONST CHAR16                *Path,
+  OUT EFI_FILE_PROTOCOL           **NewHandle
+  )
+{
+  EFI_STATUS                Status;
+  UINTN                     HandleCount;
+  EFI_HANDLE                *HandleBuffer;
+  UINTN                     Index;
+  VOID                      *Instance;
+  BOOLEAN                   Found = FALSE;
+  EFI_SIMPLE_FILE_SYSTEM_PROTOCOL   *Volume;
+  EFI_FILE_PROTOCOL                 *Root;
+
+  //
+  // Start to check all the PciIo to find all possible device
+  //
+  HandleCount = 0;
+  HandleBuffer = NULL;
+  Status = gBS->LocateHandleBuffer (
+                  ByProtocol,
+                  &gEfiSimpleFileSystemProtocolGuid,
+                  NULL,
+                  &HandleCount,
+                  &HandleBuffer
+                  );
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
+
+  for (Index = 0; Index < HandleCount; Index++) {
+    Status = gBS->HandleProtocol (HandleBuffer[Index], &gEfiSimpleFileSystemProtocolGuid, &Instance);
+    if (EFI_ERROR (Status)) {
+      continue;
+    }
+
+    // open SFS protocol
+    Status = gBS->HandleProtocol (
+                HandleBuffer[Index],
+                &gEfiSimpleFileSystemProtocolGuid,
+                (VOID **)&Volume
+                );
+    if (EFI_ERROR (Status)) {
+      continue;
+    }
+
+    // open root directory
+    Status = Volume->OpenVolume (
+                   Volume,
+                   &Root
+                   );
+    if (EFI_ERROR (Status)) {
+      continue;
+    }
+
+    // open requested file
+    Status = Root->Open (
+                   Root,
+                   NewHandle,
+                   (CHAR16*)Path,
+                   EFI_FILE_MODE_READ,
+                   0
+                   );
+    FileHandleClose(Root);
+    if (!EFI_ERROR(Status)) {
+      Found = TRUE;
+      break;
+    }
+  }
+
+  gBS->FreePool (HandleBuffer);
+
+  if (Found)
+    return EFI_SUCCESS;
+  else
+    return EFI_NOT_FOUND;
 }

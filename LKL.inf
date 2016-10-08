@@ -52,6 +52,7 @@
   LKL.c
   Data.c
   UnicodeCollation.c
+  dmcrypt.c
 
   lk/kernel/mutex.c
   lk/kernel/semaphore.c
@@ -96,6 +97,7 @@
   UefiLib
   UefiDriverEntryPoint
   DebugLib
+  FileHandleLib
 
 [Guids]
   gEfiFileInfoGuid                      ## SOMETIMES_CONSUMES   ## UNDEFINED
@@ -111,6 +113,7 @@
   gEfiUnicodeCollation2ProtocolGuid     ## TO_START
 
   gEfiCpuArchProtocolGuid
+  gEfiPartitionNameProtocolGuid
 
 [Pcd]
   gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultLang           ## SOMETIMES_CONSUMES

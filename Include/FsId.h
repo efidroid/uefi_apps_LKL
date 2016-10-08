@@ -22,6 +22,12 @@ GetFsType (
   OUT CONST CHAR8               **OutName
   );
 
+EFI_STATUS
+GetFsTypeLKL (
+  IN  CONST CHAR8               *Path,
+  OUT CONST CHAR8               **OutName
+  );
+
 extern CONST FS_IDINFO IdInfoExt;
 extern CONST FS_IDINFO IdInfoNTFS;
 extern CONST FS_IDINFO IdInfoF2FS;

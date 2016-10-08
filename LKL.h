@@ -36,13 +36,16 @@ Revision History
 #include <Protocol/DiskIo2.h>
 #include <Protocol/SimpleFileSystem.h>
 #include <Protocol/UnicodeCollation.h>
+#include <Protocol/PartitionName.h>
 
 #include <Library/PcdLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PrintLib.h>
 #include <Library/UefiLib.h>
 #include <Library/BaseLib.h>
+#include <Library/DevicePathLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/FileHandleLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/UefiDriverEntryPoint.h>
 #include <Library/UefiBootServicesTableLib.h>
@@ -50,6 +53,7 @@ Revision History
 
 #include <lkl.h>
 #include <lkl_host.h>
+#include <sys/param.h>
 
 #include <FsId.h>
 
@@ -87,6 +91,11 @@ typedef struct _LKL_VOLUME {
   INTN                            LKLDiskId;
   CHAR8                           LKLMountPoint[32];
   CONST CHAR8                     *FsType;
+
+  BOOLEAN                         IsEncrypted;
+  CHAR8                           LKLBlkDevice[MAXPATHLEN];
+  CHAR8                           LKLBlkDeviceDecrypted[MAXPATHLEN];
+  CHAR8                           LKLCryptFSName[1024];
 } LKL_VOLUME;
 
 typedef struct {
@@ -123,10 +132,30 @@ extern EFI_FILE_PROTOCOL               LKLFileInterface;
 //
 
 void lkl_thread_init(void);
+int cryptfs_setup_ext_volume(const char *label, const char *real_blkdev,
+                             const unsigned char *key, int keysize, char *out_crypto_blkdev);
+int cryptfs_revert_ext_volume(const char *label);
+
+EFI_STATUS
+GetFileFromAnyPartition (
+  IN  CONST CHAR16                *Path,
+  OUT EFI_FILE_PROTOCOL           **NewHandle
+  );
+
+VOID
+EFIAPI
+UnicodeToLower (
+  IN EFI_STRING  UnicodeString
+  );
 
 EFI_STATUS
 LKLError2EfiError (
   INTN Error
+);
+
+EFI_STATUS
+LKLMakeDir (
+ CONST CHAR8 *Path
 );
 
 CHAR8 *
