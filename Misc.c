@@ -24,6 +24,8 @@ Revision History
 --*/
 
 #include "LKL.h"
+#include <Guid/DebugImageInfoTable.h>
+#include <Library/PeCoffGetEntryPointLib.h>
 
 #define __alloca(size) __builtin_alloca (size)
 
@@ -820,4 +822,88 @@ GetFileFromAnyPartition (
     return EFI_SUCCESS;
   else
     return EFI_NOT_FOUND;
+}
+
+/**
+  Use the EFI Debug Image Table to lookup the FaultAddress and find which PE/COFF image
+  it came from. As long as the PE/COFF image contains a debug directory entry a
+  string can be returned. For ELF and Mach-O images the string points to the Mach-O or ELF
+  image. Microsoft tools contain a pointer to the PDB file that contains the debug information.
+
+  @param  FaultAddress         Address to find PE/COFF image for.
+  @param  ImageBase            Return load address of found image
+  @param  PeCoffSizeOfHeaders  Return the size of the PE/COFF header for the image that was found
+
+  @retval NULL                 FaultAddress not in a loaded PE/COFF image.
+  @retval                      Path and file name of PE/COFF image.
+
+**/
+CHAR8 *
+GetImageName (
+  IN  UINTN  FaultAddress,
+  OUT UINTN  *ImageBase,
+  OUT UINTN  *PeCoffSizeOfHeaders
+  )
+{
+  EFI_STATUS                          Status;
+  EFI_DEBUG_IMAGE_INFO_TABLE_HEADER   *DebugTableHeader;
+  EFI_DEBUG_IMAGE_INFO                *DebugTable;
+  UINTN                               Entry;
+  CHAR8                               *Address;
+
+  Status = EfiGetSystemConfigurationTable (&gEfiDebugImageInfoTableGuid, (VOID **)&DebugTableHeader);
+  if (EFI_ERROR (Status)) {
+    return NULL;
+  }
+
+  DebugTable = DebugTableHeader->EfiDebugImageInfoTable;
+  if (DebugTable == NULL) {
+    return NULL;
+  }
+
+  Address = (CHAR8 *)(UINTN)FaultAddress;
+  for (Entry = 0; Entry < DebugTableHeader->TableSize; Entry++, DebugTable++) {
+    if (DebugTable->NormalImage != NULL) {
+      if ((DebugTable->NormalImage->ImageInfoType == EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL) &&
+          (DebugTable->NormalImage->LoadedImageProtocolInstance != NULL)) {
+        if ((Address >= (CHAR8 *)DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase) &&
+            (Address <= ((CHAR8 *)DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase + DebugTable->NormalImage->LoadedImageProtocolInstance->ImageSize))) {
+          *ImageBase = (UINTN)DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase;
+          *PeCoffSizeOfHeaders = PeCoffGetSizeOfHeaders ((VOID *)(UINTN)*ImageBase);
+          return PeCoffLoaderGetPdbPointer (DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase);
+        }
+      }
+    }
+  }
+
+  return NULL;
+}
+
+
+VOID
+PrintAddrInfo (
+  VOID *Ptr
+)
+{
+  CHAR8   *Pdb;
+  UINT32  ImageBase;
+  UINT32  PeCoffSizeOfHeader;
+  UINT32  Offset;
+  UINTN   Address = (UINTN) Ptr;
+
+  Pdb = GetImageName (Address, &ImageBase, &PeCoffSizeOfHeader);
+  Offset = Address - ImageBase;
+  if (Pdb != NULL) {
+    DEBUG ((EFI_D_ERROR, "%a\n", Pdb));
+
+    //
+    // A PE/COFF image loads its headers into memory so the headers are
+    // included in the linked addresses. ELF and Mach-O images do not
+    // include the headers so the first byte of the image is usually
+    // text (code). If you look at link maps from ELF or Mach-O images
+    // you need to subtract out the size of the PE/COFF header to get
+    // get the offset that matches the link map.
+    //
+    DEBUG ((EFI_D_ERROR, "loaded at 0x%08x (PE/COFF offset) 0x%x (ELF or Mach-O offset) 0x%x", ImageBase, Offset, Offset - PeCoffSizeOfHeader));
+  }
 }

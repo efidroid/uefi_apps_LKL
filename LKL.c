@@ -22,6 +22,7 @@ Abstract:
 --*/
 
 #include "LKL.h"
+#include <stdio.h>
 #include <lk/kernel/thread.h>
 
 EFI_CPU_ARCH_PROTOCOL  *gCpu = NULL;
@@ -87,11 +88,19 @@ LKLEntryPoint (
   EFI_STATUS                Status;
   long ret;
 
+
+	DEBUG((EFI_D_ERROR, "%a:%u\n", __func__, __LINE__));
+  //return EFI_SUCCESS;
+	printf("%s:%u\n", __func__, __LINE__);
+	DEBUG((EFI_D_ERROR, "%a:%u\n", __func__, __LINE__));
+
   // Get Cpu Arch protocol
   Status = gBS->LocateProtocol (&gEfiCpuArchProtocolGuid, NULL, (VOID **)&gCpu);
   ASSERT_EFI_ERROR(Status);
+	printf("%s:%u\n", __func__, __LINE__);
 
   lkl_thread_init();
+	printf("%s:%u\n", __func__, __LINE__);
 
   // start linux kernel
   ret = lkl_start_kernel(&lkl_host_ops, 64 * 1024 * 1024, "");

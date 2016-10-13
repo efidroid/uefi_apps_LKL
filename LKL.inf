@@ -66,6 +66,7 @@
   UefiHost.c
   EFIDroidLKLPriv/lib/fs.c
   EFIDroidLKLPriv/lib/iomem.c
+  EFIDroidLKLPriv/lib/jmp_buf.c
   EFIDroidLKLPriv/lib/utils.c
   EFIDroidLKLPriv/lib/virtio_blk.c
   EFIDroidLKLPriv/lib/virtio.c
@@ -80,6 +81,9 @@
   Arm/setcontext.S
   Arm/swapcontext.S
   Arm/makecontext.c
+
+  Arm/setjmp.S
+  Arm/longjmp.S
 
 [Packages]
   StdLib/StdLib.dec
@@ -98,11 +102,16 @@
   UefiDriverEntryPoint
   DebugLib
   FileHandleLib
+  PeCoffGetEntryPointLib
+
+#[LibraryClasses]
+#  DefaultExceptionHandlerLib
 
 [Guids]
   gEfiFileInfoGuid                      ## SOMETIMES_CONSUMES   ## UNDEFINED
   gEfiFileSystemInfoGuid                ## SOMETIMES_CONSUMES   ## UNDEFINED
   gEfiFileSystemVolumeLabelInfoIdGuid   ## SOMETIMES_CONSUMES   ## UNDEFINED
+  gEfiDebugImageInfoTableGuid
 
 [Protocols]
   gEfiDiskIoProtocolGuid                ## TO_START

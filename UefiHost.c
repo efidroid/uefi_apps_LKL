@@ -1,6 +1,8 @@
 #include <lkl_host.h>
 #include <iomem.h>
+#include <jmp_buf.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include <lk/kernel/semaphore.h>
 #include <lk/kernel/mutex.h>
@@ -12,13 +14,15 @@ static void print(const char *str, int len)
 {
 	int ret __attribute__((unused));
 
-	DEBUG_CODE_BEGIN();
+	//DEBUG_CODE_BEGIN();
 	ret = write(STDOUT_FILENO, str, len);
-	DEBUG_CODE_END();
+	//DEBUG_CODE_END();
 }
 
 struct lkl_mutex {
+	int recursive;
 	mutex_t mutex;
+	semaphore_t sem;
 };
 
 struct lkl_sem {
@@ -58,37 +62,56 @@ static void sem_down(struct lkl_sem *sem)
 	} while (err < 0);
 }
 
-static struct lkl_mutex *mutex_alloc(void)
+static struct lkl_mutex *mutex_alloc(int recursive)
 {
-	struct lkl_mutex *_mutex = AllocatePool(sizeof(struct lkl_mutex));
-	mutex_t *mutex = NULL;
+	struct lkl_mutex *mutex = AllocatePool(sizeof(struct lkl_mutex));
 
-	if (!_mutex)
+	if (!mutex)
 		return NULL;
 
-	mutex = &_mutex->mutex;
+    recursive = 0;
 
-	mutex_init(mutex);
+	if (recursive)
+		mutex_init(&mutex->mutex);
+	else
+		sem_init(&mutex->sem, 1);
+	mutex->recursive = recursive;
 
-	return _mutex;
+	return mutex;
 }
 
 static void mutex_lock(struct lkl_mutex *mutex)
 {
-	mutex_acquire(&mutex->mutex);
+	int err;
+
+	if (mutex->recursive)
+		mutex_acquire(&mutex->mutex);
+	else {
+		do {
+			thread_yield();
+			err = sem_wait(&mutex->sem);
+		} while (err < 0);
+	}
 }
 
-static void mutex_unlock(struct lkl_mutex *_mutex)
+static void mutex_unlock(struct lkl_mutex *mutex)
 {
-	mutex_t *mutex = &_mutex->mutex;
-	mutex_release(mutex);
+	//int err;
+
+	if (mutex->recursive)
+		mutex_release(&mutex->mutex);
+	else {
+		sem_post(&mutex->sem, 1);
+	}
 }
 
-static void mutex_free(struct lkl_mutex *_mutex)
+static void mutex_free(struct lkl_mutex *mutex)
 {
-	mutex_t *mutex = &_mutex->mutex;
-	mutex_destroy(mutex);
-	FreePool(_mutex);
+	if (mutex->recursive)
+		mutex_destroy(&mutex->mutex);
+	else
+		sem_destroy(&mutex->sem);
+	FreePool(mutex);
 }
 
 #define MS2100N(x) ((x)*(1000000/100))
@@ -103,6 +126,7 @@ TimerCallback (
 )
 {
 	ticks += 10;
+    return;
 	if (thread_timer_tick()==INT_RESCHEDULE) {
 		thread_preempt();
 	}
@@ -123,17 +147,28 @@ lk_bigtime_t current_time_hires(void)
 void lkl_thread_init(void)
 {
 	EFI_STATUS Status;
+	printf("%s:%u\n", __func__, __LINE__);
 
+	void** ptr = (void**)0x80200000;
+	*ptr = (void*)dump_all_threads;
+
+	printf("%s:%u\n", __func__, __LINE__);
 	thread_init_early();
+	printf("%s:%u\n", __func__, __LINE__);
 	thread_init();
+	printf("%s:%u\n", __func__, __LINE__);
 	thread_create_idle();
+	printf("%s:%u\n", __func__, __LINE__);
 	thread_set_priority(DEFAULT_PRIORITY);
+	printf("%s:%u\n", __func__, __LINE__);
 
 	Status = gBS->CreateEvent (EVT_TIMER | EVT_NOTIFY_SIGNAL, TPL_CALLBACK, TimerCallback, NULL, &mTimerEvent);
 	ASSERT_EFI_ERROR (Status);
+	printf("%s:%u\n", __func__, __LINE__);
 
 	Status = gBS->SetTimer (mTimerEvent, TimerPeriodic, MS2100N(10));
 	ASSERT_EFI_ERROR (Status);
+	printf("%s:%u\n", __func__, __LINE__);
 }
 
 static lkl_thread_t lkl_thread_create(void (*fn)(void *), void *arg)
@@ -163,6 +198,16 @@ static int lkl_thread_join(lkl_thread_t tid)
 		return -1;
 	else
 		return 0;
+}
+
+static lkl_thread_t thread_self(void)
+{
+	return (lkl_thread_t)get_current_thread();
+}
+
+static int thread_equal(lkl_thread_t a, lkl_thread_t b)
+{
+	return a==b;
 }
 
 static unsigned long long time_ns(void)
@@ -236,12 +281,84 @@ static void *lkl_mem_alloc(unsigned long size)
 	return AllocatePool(size);
 }
 
+#if 0
+typedef struct {
+    uint32_t magic;
+    ucontext_t *context;
+    int retval;
+} jumpcontext_t;
+
+#define JUMPCONTEXT_MAGIC (0x75637478)
+
+static int lkl_jmp_buf_set(struct lkl_jmp_buf *jmpb)
+{
+    int rc;
+    jumpcontext_t *jumpcontext = (jumpcontext_t*)jmpb->buf;
+
+	printf("%s:%u %p\n", __func__, __LINE__, jmpb);
+
+    if(jumpcontext->magic != JUMPCONTEXT_MAGIC) {
+        jumpcontext->context = AllocateZeroPool(sizeof(ucontext_t));
+        if (!jumpcontext->context)
+            return -1;
+
+        jumpcontext->magic = JUMPCONTEXT_MAGIC;
+    }
+
+    jumpcontext->retval = 0;
+    rc = getcontext(jumpcontext->context);
+    if (rc<0) return rc;
+    rc = jumpcontext->retval;
+
+	printf("%s:%u %p\n", __func__, __LINE__, jmpb);
+    return rc;
+}
+
+static void lkl_jmp_buf_longjmp(struct lkl_jmp_buf *jmpb, int val)
+{
+	printf("%s:%u %p\n", __func__, __LINE__, jmpb);
+
+    jumpcontext_t *jumpcontext = (jumpcontext_t*)jmpb->buf;
+    jumpcontext->retval = val;
+    setcontext(jumpcontext->context);
+
+	printf("%s:%u %p\n", __func__, __LINE__, jmpb);
+}
+#endif
+
+extern void lkl_longjmp (void* env, int val) __attribute__ ((__noreturn__));
+extern int lkl_setjmp (void* env);
+void PrintAddrInfo(void*);
+void hexdump(const void *ptr, size_t len);
+#include <setjmp.h>
+static int lkl_jmp_buf_set(struct lkl_jmp_buf *jmpb)
+{
+    int rc;
+    register int sp asm ("sp");
+
+	printf("%s:%u buf=%p %p\n", __func__, __LINE__, jmpb, sp);
+	rc = setjmp(*((jmp_buf *)jmpb->buf));
+	printf("%s:%u buf=%p %p\n", __func__, __LINE__, jmpb, sp);
+    hexdump((void*)(sp-1024), 2048);
+    return rc;
+}
+
+static void lkl_jmp_buf_longjmp(struct lkl_jmp_buf *jmpb, int val)
+{
+    register int sp asm ("sp");
+	printf("%s:%u %p\n", __func__, __LINE__, sp);
+	longjmp(*((jmp_buf *)jmpb->buf), val);
+}
+
+
 struct lkl_host_operations lkl_host_ops = {
 	.panic = lkl_panic,
 	.thread_create = lkl_thread_create,
 	.thread_detach = lkl_thread_detach,
 	.thread_exit = lkl_thread_exit,
 	.thread_join = lkl_thread_join,
+	.thread_self = thread_self,
+	.thread_equal = thread_equal,
 	.sem_alloc = sem_alloc,
 	.sem_free = sem_free,
 	.sem_up = sem_up,
@@ -261,6 +378,8 @@ struct lkl_host_operations lkl_host_ops = {
 	.iomem_access = lkl_iomem_access,
 	.virtio_devices = lkl_virtio_devs,
 	.gettid = _gettid,
+	.jmp_buf_set = lkl_jmp_buf_set,
+	.jmp_buf_longjmp = lkl_jmp_buf_longjmp,
 };
 
 static int uefi_blk_get_capacity(struct lkl_disk disk, unsigned long long *res)
@@ -303,7 +422,7 @@ static int uefi_blk_request(struct lkl_disk disk, struct lkl_blk_req *req)
 {
 	LKL_VOLUME *Volume = disk.handle;
 	int err = 0;
-
+	printf("%s:%u\n", __func__, __LINE__);
 	switch (req->type) {
 		case LKL_DEV_BLK_TYPE_READ:
 			err = do_rw(Volume, Volume->DiskIo->ReadDisk, disk, req);
@@ -318,6 +437,7 @@ static int uefi_blk_request(struct lkl_disk disk, struct lkl_blk_req *req)
 		default:
 			return LKL_DEV_BLK_STATUS_UNSUP;
 	}
+	printf("%s:%u\n", __func__, __LINE__);
 
 	if (err < 0)
 		return LKL_DEV_BLK_STATUS_IOERR;

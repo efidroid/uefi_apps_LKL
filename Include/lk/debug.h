@@ -28,7 +28,7 @@
 #include <lk/sys/types.h>
 
 #if !defined(LK_DEBUGLEVEL)
-#define LK_DEBUGLEVEL 0
+#define LK_DEBUGLEVEL 2
 #endif
 
 /* debug levels */
