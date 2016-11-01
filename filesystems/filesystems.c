@@ -1,7 +1,5 @@
 #include "LKL.h"
 
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-
 CONST FS_IDINFO* FsIdInfos[] = {
   &IdInfoExt,
   &IdInfoNTFS,
