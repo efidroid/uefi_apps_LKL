@@ -97,6 +97,7 @@ typedef struct thread {
 #if WITH_KERNEL_VM
     vmm_aspace_t *aspace;
 #endif
+    int errno;
 
     /* if blocked, a pointer to the wait queue */
     struct wait_queue *blocking_wait_queue;

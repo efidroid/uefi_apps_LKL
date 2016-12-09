@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 #include <lk/err.h>
 #include <lk/kernel/thread.h>
 #include <lk/kernel/timer.h>
@@ -174,6 +175,8 @@ thread_t *thread_create_etc(thread_t *t, const char *name, thread_start_routine 
 #if WITH_KERNEL_VM
     t->aspace = NULL;
 #endif
+
+    t->errno = 0;
 
     /* create the stack */
     if (!stack) {
@@ -609,6 +612,10 @@ void thread_resched(void)
         vmm_context_switch(oldthread->aspace, newthread->aspace);
     }
 #endif
+
+    /* swap errno value */
+    oldthread->errno = errno;
+    errno = newthread->errno;
 
     /* do the low level context switch */
     arch_context_switch(oldthread, newthread);
