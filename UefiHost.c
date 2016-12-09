@@ -1,5 +1,6 @@
 #include <lkl_host.h>
 #include <iomem.h>
+#include <jmp_buf.h>
 #include <unistd.h>
 
 #include <lk/kernel/semaphore.h>
@@ -18,7 +19,9 @@ static void print(const char *str, int len)
 }
 
 struct lkl_mutex {
+	int recursive;
 	mutex_t mutex;
+	semaphore_t sem;
 };
 
 struct lkl_sem {
@@ -58,37 +61,52 @@ static void sem_down(struct lkl_sem *sem)
 	} while (err < 0);
 }
 
-static struct lkl_mutex *mutex_alloc(void)
+static struct lkl_mutex *mutex_alloc(int recursive)
 {
-	struct lkl_mutex *_mutex = AllocatePool(sizeof(struct lkl_mutex));
-	mutex_t *mutex = NULL;
+	struct lkl_mutex *mutex = AllocatePool(sizeof(struct lkl_mutex));
 
-	if (!_mutex)
+	if (!mutex)
 		return NULL;
 
-	mutex = &_mutex->mutex;
+	if (recursive)
+		mutex_init(&mutex->mutex);
+	else
+		sem_init(&mutex->sem, 1);
+	mutex->recursive = recursive;
 
-	mutex_init(mutex);
-
-	return _mutex;
+	return mutex;
 }
 
 static void mutex_lock(struct lkl_mutex *mutex)
 {
-	mutex_acquire(&mutex->mutex);
+	int err;
+
+	if (mutex->recursive)
+		mutex_acquire(&mutex->mutex);
+	else {
+		do {
+			thread_yield();
+			err = sem_wait(&mutex->sem);
+		} while (err < 0);
+	}
 }
 
-static void mutex_unlock(struct lkl_mutex *_mutex)
+static void mutex_unlock(struct lkl_mutex *mutex)
 {
-	mutex_t *mutex = &_mutex->mutex;
-	mutex_release(mutex);
+	if (mutex->recursive)
+		mutex_release(&mutex->mutex);
+	else {
+		sem_post(&mutex->sem, 1);
+	}
 }
 
-static void mutex_free(struct lkl_mutex *_mutex)
+static void mutex_free(struct lkl_mutex *mutex)
 {
-	mutex_t *mutex = &_mutex->mutex;
-	mutex_destroy(mutex);
-	FreePool(_mutex);
+	if (mutex->recursive)
+		mutex_destroy(&mutex->mutex);
+	else
+		sem_destroy(&mutex->sem);
+	FreePool(mutex);
 }
 
 #define MS2100N(x) ((x)*(1000000/100))
@@ -163,6 +181,16 @@ static int lkl_thread_join(lkl_thread_t tid)
 		return -1;
 	else
 		return 0;
+}
+
+static lkl_thread_t thread_self(void)
+{
+	return (lkl_thread_t)get_current_thread();
+}
+
+static int thread_equal(lkl_thread_t a, lkl_thread_t b)
+{
+	return a==b;
 }
 
 static unsigned long long time_ns(void)
@@ -242,6 +270,8 @@ struct lkl_host_operations lkl_host_ops = {
 	.thread_detach = lkl_thread_detach,
 	.thread_exit = lkl_thread_exit,
 	.thread_join = lkl_thread_join,
+	.thread_self = thread_self,
+	.thread_equal = thread_equal,
 	.sem_alloc = sem_alloc,
 	.sem_free = sem_free,
 	.sem_up = sem_up,
@@ -261,6 +291,8 @@ struct lkl_host_operations lkl_host_ops = {
 	.iomem_access = lkl_iomem_access,
 	.virtio_devices = lkl_virtio_devs,
 	.gettid = _gettid,
+	.jmp_buf_set = jmp_buf_set,
+	.jmp_buf_longjmp = jmp_buf_longjmp,
 };
 
 static int uefi_blk_get_capacity(struct lkl_disk disk, unsigned long long *res)

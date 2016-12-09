@@ -66,6 +66,7 @@
   UefiHost.c
   EFIDroidLKLPriv/lib/fs.c
   EFIDroidLKLPriv/lib/iomem.c
+  EFIDroidLKLPriv/lib/jmp_buf.c
   EFIDroidLKLPriv/lib/utils.c
   EFIDroidLKLPriv/lib/virtio_blk.c
   EFIDroidLKLPriv/lib/virtio.c
