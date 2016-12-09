@@ -6,6 +6,7 @@
 #include <lk/kernel/semaphore.h>
 #include <lk/kernel/mutex.h>
 #include <lk/kernel/thread.h>
+#include <lk/kernel/event.h>
 
 #include "LKL.h"
 
@@ -202,6 +203,10 @@ typedef struct {
 	EFI_EVENT event;
 	void (*fn)(void *);
 	void *arg;
+	event_t cond;
+	thread_t *thread;
+
+	int request_stop;
 } ltimer_t;
 
 VOID
@@ -212,7 +217,25 @@ LTimerCallback (
 )
 {
 	ltimer_t *timer = Context;
-	timer->fn(timer->arg);
+	event_signal(&timer->cond, 1);
+}
+
+static int timer_thread(void *pdata)
+{
+	ltimer_t *timer = pdata;
+
+	while (!timer->request_stop) {
+		event_wait(&timer->cond);
+		if (timer->request_stop)
+			break;
+
+		timer->fn(timer->arg);
+	}
+
+	event_destroy(&timer->cond);
+	FreePool(timer);
+
+	return 0;
 }
 
 static void *timer_alloc(void (*fn)(void *), void *arg)
@@ -223,9 +246,14 @@ static void *timer_alloc(void (*fn)(void *), void *arg)
 	ASSERT(timer);
 	timer->fn = fn;
 	timer->arg = arg;
+	timer->request_stop = 0;
+	event_init(&timer->cond, 0, EVENT_FLAG_AUTOUNSIGNAL);
 
 	Status = gBS->CreateEvent (EVT_TIMER | EVT_NOTIFY_SIGNAL, TPL_CALLBACK, LTimerCallback, timer, &timer->event);
 	ASSERT_EFI_ERROR (Status);
+
+	timer->thread = thread_create("timer", timer_thread, timer, DEFAULT_PRIORITY, 1*1024*1024);
+	thread_detach_and_resume(timer->thread);
 
 	return timer;
 }
@@ -247,6 +275,9 @@ static void timer_free(void *_timer)
 
 	Status = gBS->CloseEvent (timer->event);
 	ASSERT_EFI_ERROR (Status);
+
+	timer->request_stop = 1;
+	event_signal(&timer->cond, 1);
 }
 
 static void lkl_panic(void)

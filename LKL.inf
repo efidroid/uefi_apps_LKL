@@ -57,6 +57,7 @@
   lk/kernel/mutex.c
   lk/kernel/semaphore.c
   lk/kernel/thread.c
+  lk/kernel/event.c
   lk/arch_thread.c
   lk/debug.c
   lk/heap.c
