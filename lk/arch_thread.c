@@ -14,7 +14,6 @@ static void initial_thread_func(void)
 
     /* release the thread lock that was implicitly held across the reschedule */
     spin_unlock(&thread_lock);
-    arch_enable_ints();
 
     thread_t *ct = get_current_thread();
     ret = ct->entry(ct->arg);
