@@ -100,7 +100,7 @@ LKLAllocateVolume (
   )
 {
   EFI_STATUS  Status;
-  LKL_VOLUME  *Volume;
+  LKL_VOLUME  *Volume = NULL;
   INTN        Ret;
   CONST CHAR8 *FsType;
   BOOLEAN     IsEncrypted = FALSE;
