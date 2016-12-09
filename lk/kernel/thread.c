@@ -875,6 +875,7 @@ void thread_set_priority(int priority)
     THREAD_UNLOCK(state);
 }
 
+#if 0
 /**
  * @brief  Become an idle thread
  *
@@ -910,6 +911,7 @@ void thread_become_idle(void)
 
     idle_thread_routine();
 }
+#endif
 
 static int idle_thread_entry(void *arg)
 {
@@ -927,6 +929,7 @@ void thread_create_idle(void) {
 
 /* create an idle thread for the cpu we're on, and start scheduling */
 
+#if 0
 void thread_secondary_cpu_init_early(void)
 {
     DEBUG_ASSERT(arch_ints_disabled());
@@ -971,6 +974,7 @@ void thread_secondary_cpu_entry(void)
 
     idle_thread_routine();
 }
+#endif
 
 static const char *thread_state_to_str(enum thread_state state)
 {
