@@ -209,7 +209,7 @@ RealPath (
   }
 
   for (start = end = name; *start; start = end) {
-    struct lkl_stat64 st;
+    struct lkl_stat st;
     INTN n;
 
     /* Skip sequence of multiple path-separators.  */
@@ -262,7 +262,7 @@ RealPath (
       dest = mempcpy (dest, start, end - start);
       *dest = '\0';
 
-      if (lkl_sys_lstat64 (rpath, &st) < 0)
+      if (lkl_sys_lstat (rpath, &st) < 0)
         goto error;
 
       if (LKL_S_ISLNK (st.st_mode)) {
@@ -496,9 +496,9 @@ LKLFillFileInfo (
   )
 {
   INTN              RC;
-  struct lkl_stat64 StatBuf;
+  struct lkl_stat   StatBuf;
 
-  RC = lkl_sys_fstat64(FD, &StatBuf);
+  RC = lkl_sys_fstat(FD, &StatBuf);
   if (RC) {
     return  EFI_DEVICE_ERROR;
   }

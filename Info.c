@@ -104,10 +104,10 @@ LKLGetVolumeInfo (
   UINTN                 ResultSize;
   EFI_STATUS            Status;
   EFI_FILE_SYSTEM_INFO  *Info;
-  struct lkl_statfs64   StatBuf;
+  struct lkl_statfs     StatBuf;
   INTN                  RC;
 
-  RC = lkl_sys_statfs64(Volume->LKLMountPoint, sizeof(StatBuf), &StatBuf);
+  RC = lkl_sys_statfs(Volume->LKLMountPoint, &StatBuf);
   if (RC) {
     return EFI_UNSUPPORTED;
   }
@@ -221,7 +221,7 @@ LKLSetFileInfo (
   UINT8         NewAttribute;
   BOOLEAN       ReadOnly;
   BOOLEAN       IsDirectory;
-  struct lkl_stat64     StatBuf;
+  struct lkl_stat       StatBuf;
   struct lkl_utimbuf    UTimeBuf;
   INTN                  RC;
   BOOLEAN               TimeChanged = FALSE;
@@ -243,7 +243,7 @@ LKLSetFileInfo (
   }
 
   // read old file info
-  RC = lkl_sys_fstat64(IFile->FD, &StatBuf);
+  RC = lkl_sys_fstat(IFile->FD, &StatBuf);
   if (RC) {
     return LKLError2EfiError(RC);
   }

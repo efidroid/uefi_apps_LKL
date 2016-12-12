@@ -44,7 +44,7 @@ LKLAllocateIFile (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  RC = lkl_sys_fstat64(FD, &IFile->StatBuf);
+  RC = lkl_sys_fstat(FD, &IFile->StatBuf);
   if (RC) {
     Status = LKLError2EfiError(RC);
     goto Done;

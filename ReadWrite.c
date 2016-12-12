@@ -35,17 +35,16 @@ LKLGetPosition (
   LKL_IFILE  *IFile;
   LKL_VOLUME *Volume;
   lkl_loff_t NewPosition;
-  INTN       RC;
   EFI_STATUS Status;
 
   IFile = IFILE_FROM_FHAND (FHand);
   Volume  = IFile->Volume;
   (VOID)(Volume);
 
-  RC = lkl_sys_llseek(IFile->FD, 0, 0, &NewPosition, LKL_SEEK_CUR);
+  NewPosition = lkl_sys_lseek(IFile->FD, 0, LKL_SEEK_CUR);
 
-  if (RC) {
-    Status = LKLError2EfiError(RC);
+  if (NewPosition<0) {
+    Status = LKLError2EfiError((INTN)NewPosition);
   }
   else {
     *Position = NewPosition;
@@ -65,7 +64,6 @@ LKLSetPosition (
   LKL_IFILE  *IFile;
   LKL_VOLUME *Volume;
   lkl_loff_t NewPosition;
-  INTN       RC;
   EFI_STATUS Status;
 
   IFile = IFILE_FROM_FHAND (FHand);
@@ -88,13 +86,16 @@ LKLSetPosition (
   }
 
   if (Position==0xffffffffffffffff) {
-    RC = lkl_sys_llseek(IFile->FD, 0, 0, &NewPosition, LKL_SEEK_END);
+    NewPosition = lkl_sys_lseek(IFile->FD, 0, LKL_SEEK_END);
   }
   else {
-    RC = lkl_sys_llseek(IFile->FD, (Position>>32)&0xffffffff, Position&0xffffffff, &NewPosition, LKL_SEEK_SET);
+    NewPosition = lkl_sys_lseek(IFile->FD, Position, LKL_SEEK_SET);
   }
 
-  Status = LKLError2EfiError(RC);
+  if (NewPosition<0)
+    Status = LKLError2EfiError((INTN)NewPosition);
+  else
+    Status = EFI_SUCCESS;
 
 Done:
 
@@ -108,7 +109,7 @@ LKLIFileReadDir (
      OUT VOID                   *Buffer
   )
 {
-  INTN        RC;
+  int         RC;
   struct lkl_linux_dirent64 *DirEnt;
   UINTN       Size;
   UINTN       NameSize;

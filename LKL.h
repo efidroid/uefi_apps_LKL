@@ -106,7 +106,7 @@ typedef struct {
 
   INTN                FD;
   INTN                LinuxOpenFlags;
-  struct lkl_stat64   StatBuf;
+  struct lkl_stat     StatBuf;
   CHAR8               FilePath[4096];
 
   struct lkl_dir      *Dir;
