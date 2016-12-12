@@ -121,7 +121,7 @@
 #endif
 
 /* compiler fence */
-#define CF do { __asm__ volatile("" ::: "memory"); } while(0)
+//#define CF do { __asm__ volatile("" ::: "memory"); } while(0)
 
 #define __WEAK_ALIAS(x) __attribute__((weak, alias(x)))
 #define __ALIAS(x) __attribute__((alias(x)))
