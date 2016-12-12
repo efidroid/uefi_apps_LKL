@@ -295,6 +295,11 @@ static void *lkl_mem_alloc(unsigned long size)
 	return AllocatePool(size);
 }
 
+static void lkl_mem_free(void *ptr)
+{
+    if (ptr) FreePool(ptr);
+}
+
 struct lkl_host_operations lkl_host_ops = {
 	.panic = lkl_panic,
 	.thread_create = lkl_thread_create,
@@ -317,7 +322,7 @@ struct lkl_host_operations lkl_host_ops = {
 	.timer_free = timer_free,
 	.print = print,
 	.mem_alloc = lkl_mem_alloc,
-	.mem_free = FreePool,
+	.mem_free = lkl_mem_free,
 	.ioremap = lkl_ioremap,
 	.iomem_access = lkl_iomem_access,
 	.virtio_devices = lkl_virtio_devs,
