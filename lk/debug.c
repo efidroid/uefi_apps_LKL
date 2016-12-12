@@ -3,6 +3,7 @@
 #include <lk/sys/types.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <inttypes.h>
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -35,7 +36,7 @@ void hexdump(const void *ptr, size_t len)
         size_t s = ROUNDUP(MIN(len - count, 16), 4);
         size_t i;
 
-        printf("0x%08lx: ", address);
+        printf("0x%08"PRIxPTR": ", address);
         for (i = 0; i < s / 4; i++) {
             u.buf[i] = ((const uint32_t *)address)[i];
             printf("%08x ", u.buf[i]);
