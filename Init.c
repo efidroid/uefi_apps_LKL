@@ -198,7 +198,7 @@ LKLAllocateVolume (
     UINT32 DevId;
 
     // get device id
-    Ret = lkl_get_virtio_blkdev(Volume->LKLDiskId, &DevId);
+    Ret = lkl_get_virtio_blkdev(Volume->LKLDiskId, 0, &DevId);
     if (Ret < 0) {
       Status = LKLError2EfiError(Ret);
       goto Done;
@@ -250,7 +250,7 @@ LKLAllocateVolume (
 
   else {
     // mount disk
-    Ret = lkl_mount_dev(Volume->LKLDiskId, FsType, LKL_MS_SYNCHRONOUS|LKL_MS_DIRSYNC, NULL, Volume->LKLMountPoint, sizeof(Volume->LKLMountPoint));
+    Ret = lkl_mount_dev(Volume->LKLDiskId, 0, FsType, LKL_MS_SYNCHRONOUS|LKL_MS_DIRSYNC, NULL, Volume->LKLMountPoint, sizeof(Volume->LKLMountPoint));
     if (Ret < 0) {
       DEBUG((EFI_D_ERROR, "can't mount disk: %a\n", lkl_strerror(Ret)));
       Status = LKLError2EfiError(Ret);
