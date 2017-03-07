@@ -94,7 +94,7 @@ LKLEntryPoint (
   lkl_thread_init();
 
   // start linux kernel
-  ret = lkl_start_kernel(&lkl_host_ops, 64 * 1024 * 1024, "");
+  ret = lkl_start_kernel(&lkl_host_ops, "mem=64M");
   if (ret) {
     DEBUG((EFI_D_ERROR, "can't start kernel: %s\n", lkl_strerror(ret)));
     return LKLError2EfiError(ret);
